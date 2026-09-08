@@ -321,7 +321,6 @@
 
     <!-- Script para instalar como App (PWA) -->
     <script>
-        // Gera o arquivo de configuração do App dinamicamente
         const manifest = {
             name: "KDS & PDV",
             short_name: "KDS PDV",
@@ -331,23 +330,14 @@
             background_color: "#f3f4f6",
             theme_color: "#ef4444",
             icons: [
-                {
-                    src: "https://placehold.co/192x192/ef4444/ffffff?text=KDS",
-                    sizes: "192x192",
-                    type: "image/png"
-                },
-                {
-                    src: "https://placehold.co/512x512/ef4444/ffffff?text=KDS",
-                    sizes: "512x512",
-                    type: "image/png"
-                }
+                { src: "https://placehold.co/192x192/ef4444/ffffff?text=KDS", sizes: "192x192", type: "image/png" },
+                { src: "https://placehold.co/512x512/ef4444/ffffff?text=KDS", sizes: "512x512", type: "image/png" }
             ]
         };
         const manifestBlob = new Blob([JSON.stringify(manifest)], { type: 'application/json' });
         const manifestUrl = URL.createObjectURL(manifestBlob);
         document.head.insertAdjacentHTML('beforeend', '<link rel="manifest" href="' + manifestUrl + '">');
 
-        // Registra o Service Worker (necessário para o Android/iOS reconhecerem como App)
         const swCode = "self.addEventListener('install', (e) => self.skipWaiting()); self.addEventListener('activate', (e) => self.clients.claim()); self.addEventListener('fetch', (e) => {});";
         const swBlob = new Blob([swCode], { type: 'application/javascript' });
         const swUrl = URL.createObjectURL(swBlob);
@@ -358,12 +348,11 @@
 
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
-        import { getAuth, signInAnonymously, signInWithCustomToken } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { getAuth, signInAnonymously } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
         import { getFirestore, doc, getDoc, setDoc, updateDoc, deleteDoc, onSnapshot, collection } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
         const appId = typeof __app_id !== 'undefined' ? __app_id : 'kds-pdv-app';
         
-        // Configuração do Firebase do seu restaurante (pedidos-janta)
         const firebaseConfig = {
             apiKey: "AIzaSyBZz3WuV9RHjacAjfHX8yhrQa70B5Dv3VI",
             authDomain: "pedidos-janta.firebaseapp.com",
@@ -378,7 +367,6 @@
         const auth = getAuth(app);
         const db = getFirestore(app);
 
-        // --- 1. STATE MANAGEMENT & INITIALIZATION ---
         const DEFAULT_MENU = {
             proteins: [
                 { id: 'p1', name: 'Strogonoff', active: true },
@@ -412,12 +400,10 @@
 
         let currentPlate = { size: null, proteins: [], carbs: [], sides: [], obs: '' };
 
-        // Referências do Firestore (Dados Públicos do Restaurante na Nuvem)
         const configRef = doc(db, 'artifacts', appId, 'public', 'data', 'settings', 'main');
         const ordersRef = collection(db, 'artifacts', appId, 'public', 'data', 'active_orders');
         const historyRef = collection(db, 'artifacts', appId, 'public', 'data', 'history_orders');
 
-        // Exportando funções para o HTML acessar (necessário após integração da nuvem)
         window.switchView = switchView;
         window.switchAdminTab = switchAdminTab;
         window.openPlateBuilder = openPlateBuilder;
@@ -428,6 +414,8 @@
         window.removePlateFromCart = removePlateFromCart;
         window.sendOrder = sendOrder;
         window.changeOrderStatus = changeOrderStatus;
+        window.deleteActiveOrder = deleteActiveOrder;
+        window.deleteHistoryOrder = deleteHistoryOrder;
         window.openZoomOrder = openZoomOrder;
         window.closeZoomOrder = closeZoomOrder;
         window.loadPricesAdmin = loadPricesAdmin;
@@ -438,7 +426,6 @@
         window.closeAddItemModal = closeAddItemModal;
         window.saveNewMenuItem = saveNewMenuItem;
 
-        // --- 2. UTILS & UI HELPERS ---
         function showToast(message, type = 'success') {
             const container = document.getElementById('toast-container');
             const toast = document.createElement('div');
@@ -464,18 +451,14 @@
             return `${day}/${month}/${year}`;
         }
 
-        // --- 3. NAVIGATION LOGIC ---
         function switchView(viewName) {
-            // Hide all views
             document.querySelectorAll('.view-section').forEach(v => {
                 v.classList.remove('block');
                 v.classList.add('hidden');
             });
-            // Show target
             document.getElementById(`view-${viewName}`).classList.remove('hidden');
             document.getElementById(`view-${viewName}`).classList.add('block');
 
-            // Update Nav styling
             document.querySelectorAll('.nav-btn').forEach(btn => {
                 btn.classList.remove('text-red-600');
                 btn.classList.add('text-gray-400');
@@ -483,7 +466,6 @@
             document.getElementById(`nav-${viewName}`).classList.remove('text-gray-400');
             document.getElementById(`nav-${viewName}`).classList.add('text-red-600');
 
-            // Update Header Title
             const titles = {
                 'lancamento': 'Lançar Pedido',
                 'status': 'Status dos Pedidos',
@@ -492,7 +474,6 @@
             };
             document.getElementById('header-title').innerText = titles[viewName];
 
-            // Trigger specific renders based on view
             if(viewName === 'cozinha') renderKitchenView();
             if(viewName === 'status') renderWaiterStatus();
             if(viewName === 'admin') {
@@ -515,15 +496,12 @@
             activeTab.classList.add('text-red-600', 'border-b-2', 'border-red-600');
         }
 
-        // --- STREAMING_CHUNK: 4. PLATE BUILDER LOGIC (PDV) ---
         function openPlateBuilder() {
-            // Reset builder state
             currentPlate = { size: 'P', proteins: [], carbs: [], sides: [], obs: '' };
             document.getElementById('builder-obs').value = '';
-            
             renderPlateBuilderUI();
             document.getElementById('plate-modal').classList.remove('hidden');
-            document.body.style.overflow = 'hidden'; // Prevent background scroll
+            document.body.style.overflow = 'hidden';
         }
 
         function closePlateBuilder() {
@@ -532,7 +510,6 @@
         }
 
         function renderPlateBuilderUI() {
-            // Sizes
             const sizesHtml = `
                 <div onclick="setPlateSize('P')" class="selectable-item ${currentPlate.size === 'P' ? 'selected' : 'bg-white border-gray-200 text-gray-700'} border-2 rounded-xl p-3 text-center cursor-pointer transition-colors font-bold">
                     Tamanho P <div class="text-xs font-normal opacity-80">${formatCurrency(State.prices.P)}</div>
@@ -548,7 +525,6 @@
             document.getElementById('builder-sizes').innerHTML = sizesHtml;
             document.getElementById('builder-price-display').innerText = formatCurrency(State.prices[currentPlate.size]);
 
-            // Render Groups
             const renderGroup = (items, category, selectedArray) => {
                 return items.filter(i => i.active).map(item => `
                     <div onclick="togglePlateItem('${category}', '${item.name}')" 
@@ -597,7 +573,6 @@
             showToast('Prato adicionado à comanda!');
         }
 
-        // --- STREAMING_CHUNK: 5. CART & ORDER SUBMISSION ---
         function renderCart() {
             const container = document.getElementById('cart-items');
             const emptyMsg = document.getElementById('cart-empty');
@@ -668,7 +643,6 @@
                 return;
             }
 
-            // Increment ID (Atualizando e Salvando na Nuvem)
             State.lastOrderId++;
             await updateDoc(configRef, { lastOrderId: State.lastOrderId });
 
@@ -679,7 +653,7 @@
                 id: State.lastOrderId,
                 customer: customer,
                 type: type,
-                status: 'pending', // pending -> preparing -> ready
+                status: 'pending',
                 timestamp: now.toISOString(),
                 timeString: now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
                 total_price: total,
@@ -687,10 +661,8 @@
                 plates: [...State.cart]
             };
 
-            // Salvar pedido no Banco de Dados em tempo real
             await setDoc(doc(ordersRef, newOrder.id.toString()), newOrder);
 
-            // Reset Form
             State.cart = [];
             document.getElementById('order-customer').value = '';
             document.getElementById('order-obs').value = '';
@@ -700,7 +672,6 @@
             showToast(`Pedido #${newOrder.id} enviado para a cozinha!`);
         }
 
-        // --- STREAMING_CHUNK: 6. KITCHEN KDS LOGIC ---
         async function changeOrderStatus(orderId, newStatus) {
             if (!auth.currentUser) return;
             
@@ -711,21 +682,45 @@
                 order.status = 'ready';
                 order.completedAt = new Date().toISOString();
                 
-                // Remove da lista de ativos e manda pro histórico (Na Nuvem)
                 await deleteDoc(doc(ordersRef, order.id.toString()));
                 await setDoc(doc(historyRef, order.id.toString()), order);
                 
                 showToast(`Pedido #${order.id} concluído!`);
             } else {
-                // Apenas atualiza o status (Ex: Preparando) na Nuvem
                 order.status = newStatus;
                 await updateDoc(doc(ordersRef, order.id.toString()), { status: newStatus });
             }
         }
 
+        // --- FUNÇÃO PARA EXCLUIR PEDIDO ATIVO (COZINHA) ---
+        async function deleteActiveOrder(orderId) {
+            if (!auth.currentUser) return;
+            if (confirm(`Tem certeza que deseja apagar o pedido #${orderId}?`)) {
+                try {
+                    await deleteDoc(doc(ordersRef, orderId.toString()));
+                    showToast(`Pedido #${orderId} excluído.`);
+                } catch(e) {
+                    showToast('Erro ao excluir pedido', 'error');
+                }
+            }
+        }
+
+        // --- FUNÇÃO PARA EXCLUIR PEDIDO DO HISTÓRICO (CAIXA) ---
+        async function deleteHistoryOrder(orderId) {
+            if (!auth.currentUser) return;
+            if (confirm(`Tem certeza que deseja remover este pedido do histórico e do caixa?`)) {
+                try {
+                    await deleteDoc(doc(historyRef, orderId.toString()));
+                    showToast('Pedido removido do histórico.');
+                } catch(e) {
+                    showToast('Erro ao excluir histórico', 'error');
+                }
+            }
+        }
+
         function renderKitchenView() {
             const container = document.getElementById('kitchen-orders-container');
-            if(!container) return; // Prevent errors if not loaded
+            if(!container) return;
             
             container.innerHTML = '';
 
@@ -786,21 +781,23 @@
                                 <div class="text-xl font-black text-gray-900 leading-none">#${order.id}</div>
                                 <div class="text-sm font-bold text-gray-600 mt-1">${order.customer}</div>
                             </div>
-                            <div class="flex flex-col items-end gap-2">
-                                ${statusBadge}
+                            <div class="flex items-center gap-1">
+                                <button onclick="deleteActiveOrder(${order.id})" class="text-gray-400 hover:text-red-500 p-1 border rounded-md bg-gray-50 hover:bg-gray-100 shadow-sm transition-colors" title="Excluir Pedido">
+                                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
+                                </button>
                                 <button onclick="openZoomOrder(${order.id})" class="text-gray-500 hover:text-gray-900 p-1 border rounded-md bg-gray-50 hover:bg-gray-100 shadow-sm transition-colors" title="Ampliar Pedido">
                                     <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0zM10 7v3m0 0v3m0-3h3m-3 0H7"></path></svg>
                                 </button>
                             </div>
                         </div>
                         
-                        <!-- TYPE BANNER -->
                         <div class="w-full ${typeColor} text-white text-center font-black uppercase tracking-widest py-1.5 text-[11px] sm:text-xs rounded-lg mb-4 shadow-sm border border-black/10 flex items-center justify-center gap-1">
                             ${typeIcon} PARA ${order.type}
                         </div>
                         
                         <div class="flex justify-between items-center border-b border-gray-100 pb-2 mb-3">
                             <div class="text-xs font-bold text-gray-500 bg-gray-100 px-2 py-1 rounded shadow-sm border border-gray-200">⏱️ ${order.timeString}</div>
+                            <div>${statusBadge}</div>
                         </div>
 
                         ${order.observations ? `<div class="bg-red-50 text-red-700 p-3 rounded-lg text-sm font-bold mb-4 border border-red-200 shadow-sm flex items-start gap-2"><svg class="w-5 h-5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg> <div>Geral: ${order.observations}</div></div>` : ''}
@@ -826,7 +823,6 @@
             });
         }
 
-        // --- FUNÇÕES DE ZOOM DA COZINHA ---
         function openZoomOrder(orderId) {
             const order = State.orders.find(o => o.id === orderId);
             if (!order) return;
@@ -895,7 +891,6 @@
             document.body.style.overflow = 'auto';
         }
 
-        // Permitir fechar o modal com a tecla ESC
         document.addEventListener('keydown', function(event) {
             if (event.key === "Escape") {
                 closeZoomOrder();
@@ -904,7 +899,6 @@
             }
         });
 
-        // --- STREAMING_CHUNK: 7. WAITER STATUS VIEW ---
         function renderWaiterStatus() {
             const container = document.getElementById('waiter-status-container');
             if(!container) return;
@@ -916,7 +910,6 @@
                 return;
             }
 
-            // Reverse to show newest on top
             [...State.orders].reverse().forEach(order => {
                 const isPreparing = order.status === 'preparing';
                 
@@ -946,9 +939,6 @@
             });
         }
 
-        // --- STREAMING_CHUNK: 8. ADMIN: PRICES, MENU & HISTORY ---
-        
-        // --- ADMIN PREÇOS ---
         function loadPricesAdmin() {
             document.getElementById('price-p').value = State.prices.P.toFixed(2);
             document.getElementById('price-g').value = State.prices.G.toFixed(2);
@@ -972,7 +962,6 @@
             showToast('Preços atualizados em todos os aparelhos!');
         }
 
-        // --- ADMIN MENU ---
         function renderMenuAdmin() {
             const container = document.getElementById('menu-management-container');
             container.innerHTML = '';
@@ -989,13 +978,11 @@
                         <span class="${!item.active ? 'text-gray-400 line-through' : 'font-medium flex-1'}">${item.name}</span>
                         
                         <div class="flex items-center gap-4">
-                            <!-- Toggle de Ativar/Desativar -->
                             <label class="relative inline-flex items-center cursor-pointer" title="${item.active ? 'Desativar temporariamente' : 'Reativar'}">
                                 <input type="checkbox" class="sr-only peer" ${item.active ? 'checked' : ''} onchange="toggleMenuItemStatus('${cat.key}', '${item.id}')">
                                 <div class="w-11 h-6 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-green-500"></div>
                             </label>
                             
-                            <!-- Botão de Excluir Permanentemente -->
                             <button onclick="deleteMenuItem('${cat.key}', '${item.id}')" class="text-gray-400 hover:text-red-500 p-1.5 rounded-lg hover:bg-red-50 transition-colors" title="Excluir Permanentemente">
                                 <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
                             </button>
@@ -1061,12 +1048,12 @@
             showToast('Novo item adicionado e sincronizado!');
         }
 
-        // --- ADMIN HISTÓRICO ---
+        // --- RENDERIZAR HISTÓRICO COM BOTÃO DE EXCLUIR (LIXEIRA) ---
         function renderHistoryAdmin() {
             const container = document.getElementById('history-container');
             container.innerHTML = '';
             
-            const dates = Object.keys(State.history).sort((a,b) => new Date(b) - new Date(a)); // Descending
+            const dates = Object.keys(State.history).sort((a,b) => new Date(b) - new Date(a));
 
             if (dates.length === 0) {
                 container.innerHTML = `<div class="text-gray-500 italic">Nenhum histórico de vendas.</div>`;
@@ -1077,10 +1064,14 @@
                 const dayOrders = State.history[dateStr];
                 const dayTotal = dayOrders.reduce((sum, order) => sum + order.total_price, 0);
                 
-                // Build a simple summary
                 const ordersHtml = dayOrders.map(o => `
                     <div class="flex justify-between items-center py-2 border-t border-gray-100 text-sm">
-                        <span class="text-gray-600">#${o.id} - ${o.customer} (${o.type})</span>
+                        <div class="flex items-center gap-2">
+                            <button onclick="deleteHistoryOrder(${o.id})" class="text-gray-400 hover:text-red-500 p-1 rounded transition-colors" title="Apagar do Histórico">
+                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
+                            </button>
+                            <span class="text-gray-600">#${o.id} - ${o.customer} (${o.type})</span>
+                        </div>
                         <span class="font-bold text-gray-800">${formatCurrency(o.total_price)}</span>
                     </div>
                 `).join('');
@@ -1106,21 +1097,17 @@
             });
         }
 
-        // --- STREAMING_CHUNK: 9. APP INITIALIZATION & LISTENERS ---
-        
         async function initializeCloud() {
             try {
-                // 1. Autenticação Segura Anônima
                 try {
                     await signInAnonymously(auth);
                 } catch (authError) {
                     if (authError.code === 'auth/configuration-not-found') {
-                        throw new Error("Autenticação Anônima não está ativada no Firebase! Vá no painel do Firebase > Authentication > Sign-in method e ative a opção 'Anônimo'.");
+                        throw new Error("Autenticação Anônima não está ativada no Firebase!");
                     }
                     throw authError;
                 }
 
-                // 2. Criar tabela de configuração se for a primeira vez
                 const configSnap = await getDoc(configRef);
                 if (!configSnap.exists()) {
                     await setDoc(configRef, {
@@ -1130,8 +1117,6 @@
                     });
                 }
 
-                // 3. Ouvintes de Sincronização em Tempo Real
-                // - Escutar Menu e Preços
                 onSnapshot(configRef, (docSnap) => {
                     if (docSnap.exists()) {
                         const data = docSnap.data();
@@ -1142,17 +1127,15 @@
                         loadPricesAdmin();
                         if (currentPlate.size) renderPlateBuilderUI(); 
                     }
-                }, (error) => console.error("Erro na sincronização de configurações:", error));
+                });
 
-                // - Escutar Pedidos da Cozinha (Ativos)
                 onSnapshot(ordersRef, (snapshot) => {
                     State.orders = snapshot.docs.map(doc => doc.data());
-                    State.orders.sort((a, b) => a.id - b.id); // Mantém a ordem da fila
+                    State.orders.sort((a, b) => a.id - b.id);
                     renderKitchenView();
                     renderWaiterStatus();
-                }, (error) => console.error("Erro na sincronização de pedidos:", error));
+                });
 
-                // - Escutar Histórico e Fechamento de Caixa
                 onSnapshot(historyRef, (snapshot) => {
                     const historyList = snapshot.docs.map(doc => doc.data());
                     State.history = {};
@@ -1162,9 +1145,8 @@
                          State.history[dateKey].push(order);
                     });
                     renderHistoryAdmin();
-                }, (error) => console.error("Erro na sincronização do histórico:", error));
+                });
 
-                // 4. Remover Tela de Loading Suavemente
                 setTimeout(() => {
                     const loader = document.getElementById('cloud-loading');
                     if(loader) {
@@ -1175,22 +1157,15 @@
 
             } catch (error) {
                 console.error("Erro fatal ao conectar na Nuvem:", error);
-                
-                // Mostrar o erro de forma visual na tela para ajudar a resolver
                 const loader = document.getElementById('cloud-loading');
                 if (loader) {
                     loader.innerHTML = `
                         <div class="bg-white p-6 rounded-2xl max-w-sm text-center text-gray-800 m-4 shadow-2xl">
                             <div class="text-red-500 text-5xl mb-4">⚠️</div>
                             <h2 class="text-xl font-bold mb-2 text-red-600">Conexão Bloqueada</h2>
-                            <p class="text-sm text-gray-700 mb-4 font-medium">${error.message || "Verifique se o Firestore e a Autenticação estão configurados corretamente."}</p>
-                            <p class="text-xs text-gray-500 bg-gray-100 p-3 rounded-lg border border-gray-200">Acesse console.firebase.google.com para corrigir as configurações do seu projeto.</p>
+                            <p class="text-sm text-gray-700 mb-4 font-medium">${error.message}</p>
                         </div>
                     `;
-                    loader.classList.remove('bg-gray-900');
-                    loader.classList.add('bg-gray-900/90', 'backdrop-blur-sm');
-                } else {
-                    showToast(error.message, "error");
                 }
             }
         }
@@ -1198,8 +1173,6 @@
         document.addEventListener('DOMContentLoaded', () => {
             switchView('lancamento');
             switchAdminTab('historico');
-            
-            // Disparar sincronização com a Nuvem
             initializeCloud();
         });
     </script>
