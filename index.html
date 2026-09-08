@@ -2,1206 +2,370 @@
 <html lang="pt-BR">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>KDS & PDV - Sistema Completo</title>
-    
-    <!-- Configurações para virar App (PWA) -->
-    <meta name="theme-color" content="#ef4444">
-    <meta name="apple-mobile-web-app-capable" content="yes">
-    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-    <meta name="apple-mobile-web-app-title" content="KDS PDV">
-    <link rel="apple-touch-icon" href="https://placehold.co/192x192/ef4444/ffffff?text=KDS">
-
+    <!-- Tailwind CSS para estilização rápida e moderna -->
     <script src="https://cdn.tailwindcss.com"></script>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-    
-    <style>
-        body {
-            font-family: 'Inter', sans-serif;
-            background-color: #f3f4f6;
-            -webkit-tap-highlight-color: transparent;
-        }
-        
-        /* Custom scrollbar */
-        ::-webkit-scrollbar { width: 6px; height: 6px; }
-        ::-webkit-scrollbar-track { background: transparent; }
-        ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
-        ::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
-
-        /* Animations */
-        @keyframes slideInRight { from { transform: translateX(100%); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
-        @keyframes fadeOut { from { opacity: 1; } to { opacity: 0; } }
-        @keyframes slideUp { from { transform: translateY(100%); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
-        
-        .toast-enter { animation: slideInRight 0.3s cubic-bezier(0.4, 0, 0.2, 1) forwards; }
-        .toast-exit { animation: fadeOut 0.3s ease-out forwards; }
-        .modal-enter { animation: slideUp 0.3s cubic-bezier(0.4, 0, 0.2, 1) forwards; }
-
-        /* Toggle Switch Styles */
-        .toggle-checkbox:checked { right: 0; border-color: #22c55e; }
-        .toggle-checkbox:checked + .toggle-label { background-color: #22c55e; }
-        
-        /* Selectable Item Styles */
-        .selectable-item.selected {
-            background-color: #ef4444; /* red-500 */
-            color: white;
-            border-color: #ef4444;
-        }
-    </style>
-</head>
-<body class="text-gray-800 h-screen flex flex-col overflow-hidden">
-
-    <div id="toast-container" class="fixed top-4 right-4 z-50 flex flex-col gap-2"></div>
-
-    <header class="bg-white shadow-sm px-4 py-3 flex justify-between items-center z-10 shrink-0">
-        <h1 class="text-xl font-bold text-gray-800 flex items-center gap-2">
-            <svg class="w-7 h-7 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 15.546c-.523 0-1.046.151-1.5.454a2.704 2.704 0 01-3 0 2.704 2.704 0 00-3 0 2.704 2.704 0 01-3 0 2.704 2.704 0 00-3 0 2.704 2.704 0 01-3 0 2.701 2.701 0 00-1.5-.454M9 6v2m3-2v2m3-2v2M9 3h.01M12 3h.01M15 3h.01M21 21v-7a2 2 0 00-2-2H5a2 2 0 00-2 2v7h18zm-3-9v-2a2 2 0 00-2-2H8a2 2 0 00-2 2v2h12z"></path></svg>
-            KDS <span class="text-gray-400 font-normal text-sm md:text-lg">| Gestão</span>
-        </h1>
-        <div id="header-title" class="font-semibold text-gray-600 hidden md:block">Lançar Pedido</div>
-    </header>
-
-    <main class="flex-1 overflow-y-auto bg-gray-50 pb-20 md:pb-0 relative" id="main-content">
-        
-        <!-- ==================== VIEW 1: LANÇAMENTO DE PEDIDOS (PDV) ==================== -->
-        <div id="view-lancamento" class="view-section p-4 max-w-3xl mx-auto hidden">
-            
-            <!-- Passos do Pedido -->
-            <div class="bg-white rounded-2xl shadow-sm border border-gray-200 p-5 mb-4">
-                <h2 class="font-bold text-gray-800 mb-4 border-b pb-2">1. Dados da Comanda</h2>
-                
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
-                    <div>
-                        <label class="block text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1">Mesa / Cliente</label>
-                        <input type="text" id="order-customer" placeholder="Ex: Mesa 04 ou João" class="w-full px-4 py-3 rounded-xl border border-gray-300 focus:ring-2 focus:ring-red-500 focus:border-red-500 bg-gray-50 outline-none">
-                    </div>
-                    <div>
-                        <label class="block text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1">Tipo de Pedido</label>
-                        <select id="order-type" class="w-full px-4 py-3 rounded-xl border border-gray-300 focus:ring-2 focus:ring-red-500 focus:border-red-500 bg-gray-50 outline-none appearance-none">
-                            <option value="Local">🍽️ Consumir no Local</option>
-                            <option value="Viagem">🥡 Para Viagem</option>
-                            <option value="Retirada">🚶 Retirada</option>
-                            <option value="Delivery">🛵 Delivery</option>
-                        </select>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Carrinho / Comanda -->
-            <div class="bg-white rounded-2xl shadow-sm border border-gray-200 p-5 mb-4">
-                <div class="flex justify-between items-center border-b pb-2 mb-4">
-                    <h2 class="font-bold text-gray-800">2. Pratos da Comanda</h2>
-                    <span id="cart-total" class="font-bold text-green-600 text-lg">R$ 0,00</span>
-                </div>
-                
-                <div id="cart-items" class="space-y-3 mb-4 empty:hidden">
-                    <!-- Itens do carrinho aparecem aqui -->
-                </div>
-                <div id="cart-empty" class="text-center text-gray-400 py-6 text-sm">
-                    Nenhum prato adicionado ainda.
-                </div>
-
-                <button onclick="openPlateBuilder()" class="w-full py-3 bg-gray-100 hover:bg-gray-200 text-gray-800 rounded-xl font-semibold border border-gray-300 border-dashed flex justify-center items-center gap-2 transition-colors">
-                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path></svg>
-                    Adicionar Prato
-                </button>
-            </div>
-
-            <div class="bg-white rounded-2xl shadow-sm border border-gray-200 p-5 mb-4">
-                 <label class="block text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1">Observação Geral da Comanda (Opcional)</label>
-                 <textarea id="order-obs" rows="2" placeholder="Ex: Cliente tem pressa, embalar bem..." class="w-full px-4 py-2 rounded-xl border border-gray-300 focus:ring-2 focus:ring-red-500 focus:border-red-500 bg-gray-50 outline-none resize-y text-sm"></textarea>
-            </div>
-
-            <button onclick="sendOrder()" class="w-full py-4 bg-red-500 hover:bg-red-600 text-white rounded-xl font-bold text-lg transition-transform active:scale-[0.98] shadow-md flex justify-center items-center gap-2">
-                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4"></path></svg>
-                ENVIAR COMANDA PARA COZINHA
-            </button>
-        </div>
-
-        <!-- ==================== VIEW 2: ACOMPANHAMENTO DE PEDIDOS ==================== -->
-        <div id="view-status" class="view-section p-4 max-w-4xl mx-auto hidden">
-            <h2 class="font-bold text-xl mb-4 text-gray-800">Meus Pedidos Ativos</h2>
-            <div id="waiter-status-container" class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <!-- Status gerado via JS -->
-            </div>
-        </div>
-
-        <!-- ==================== VIEW 3: VISOR DA COZINHA ==================== -->
-        <div id="view-cozinha" class="view-section p-4 h-full flex flex-col hidden">
-            <div class="flex justify-between items-center mb-4">
-                <h2 class="font-bold text-xl text-gray-800">Visor da Cozinha</h2>
-            </div>
-            <div id="kitchen-orders-container" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 flex-1 items-start content-start overflow-y-auto pb-24 md:pb-0">
-                <!-- Pedidos da cozinha entram aqui -->
-            </div>
-        </div>
-
-        <!-- ==================== VIEW 4: ADMIN / CONFIGURAÇÕES ==================== -->
-        <div id="view-admin" class="view-section p-4 max-w-3xl mx-auto hidden pb-24">
-            <h2 class="font-bold text-xl mb-4 text-gray-800">Configurações & Histórico</h2>
-            
-            <!-- Admin Tabs -->
-            <div class="flex border-b border-gray-200 mb-6">
-                <button onclick="switchAdminTab('historico')" id="tab-historico" class="admin-tab flex-1 py-3 text-center font-semibold text-gray-500 transition-colors">Histórico</button>
-                <button onclick="switchAdminTab('cardapio')" id="tab-cardapio" class="admin-tab flex-1 py-3 text-center font-semibold text-gray-500 transition-colors">Cardápio</button>
-                <button onclick="switchAdminTab('precos')" id="tab-precos" class="admin-tab flex-1 py-3 text-center font-semibold text-gray-500 transition-colors">Preços</button>
-            </div>
-
-            <!-- Admin Content: Histórico -->
-            <div id="admin-historico" class="admin-section hidden">
-                <h3 class="font-bold text-gray-700 mb-4 flex items-center gap-2">
-                    <svg class="w-5 h-5 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
-                    Fechamento de Caixa por Dia
-                </h3>
-                <div id="history-container"></div>
-            </div>
-
-            <!-- Admin Content: Cardápio -->
-            <div id="admin-cardapio" class="admin-section hidden">
-                <div class="flex justify-between items-center mb-4">
-                    <h3 class="font-bold text-gray-700">Gerenciar Itens do Menu</h3>
-                    <button onclick="addNewMenuItem()" class="bg-red-500 hover:bg-red-600 text-white px-4 py-2 rounded-lg text-sm font-bold shadow-sm transition-transform active:scale-95 flex items-center gap-2">
-                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path></svg>
-                        Novo Item
-                    </button>
-                </div>
-                <div id="menu-management-container" class="space-y-6"></div>
-            </div>
-
-            <!-- Admin Content: Preços -->
-            <div id="admin-precos" class="admin-section hidden">
-                <h3 class="font-bold text-gray-700 mb-4">Configurar Preços</h3>
-                <div class="bg-white rounded-2xl shadow-sm border border-gray-200 p-5 space-y-4">
-                    <div>
-                        <label class="block text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1">Valor Tamanho P (R$)</label>
-                        <input type="number" step="0.01" id="price-p" class="w-full px-4 py-3 rounded-xl border border-gray-300 focus:ring-2 focus:ring-red-500 bg-gray-50 outline-none">
-                    </div>
-                    <div>
-                        <label class="block text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1">Valor Tamanho G (R$)</label>
-                        <input type="number" step="0.01" id="price-g" class="w-full px-4 py-3 rounded-xl border border-gray-300 focus:ring-2 focus:ring-red-500 bg-gray-50 outline-none">
-                    </div>
-                    <div>
-                        <label class="block text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1">Valor Sopa (R$)</label>
-                        <input type="number" step="0.01" id="price-sopa" class="w-full px-4 py-3 rounded-xl border border-gray-300 focus:ring-2 focus:ring-red-500 bg-gray-50 outline-none">
-                    </div>
-                    <button onclick="savePrices()" class="w-full py-4 bg-green-500 hover:bg-green-600 text-white font-bold rounded-xl mt-4 transition-transform active:scale-95">
-                        Salvar Preços
-                    </button>
-                </div>
-            </div>
-        </div>
-
-    </main>
-
-    <nav class="bg-white border-t border-gray-200 flex justify-around items-center absolute md:relative bottom-0 w-full z-20 pb-safe">
-        <button onclick="switchView('lancamento')" id="nav-lancamento" class="nav-btn flex-1 py-3 flex flex-col items-center gap-1 text-red-600 transition-colors">
-            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path></svg>
-            <span class="text-[10px] font-bold uppercase tracking-wider">Lançar</span>
-        </button>
-        <button onclick="switchView('status')" id="nav-status" class="nav-btn flex-1 py-3 flex flex-col items-center gap-1 text-gray-400 hover:text-gray-600 transition-colors">
-            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4"></path></svg>
-            <span class="text-[10px] font-bold uppercase tracking-wider">Status</span>
-        </button>
-        <button onclick="switchView('cozinha')" id="nav-cozinha" class="nav-btn flex-1 py-3 flex flex-col items-center gap-1 text-gray-400 hover:text-gray-600 transition-colors">
-            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 14v6m-3-3h6M6 10h2a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v2a2 2 0 002 2zm10 0h2a2 2 0 002-2V6a2 2 0 00-2-2h-2a2 2 0 00-2 2v2a2 2 0 002 2zM6 20h2a2 2 0 002-2v-2a2 2 0 00-2-2H6a2 2 0 00-2 2v2a2 2 0 002 2z"></path></svg>
-            <span class="text-[10px] font-bold uppercase tracking-wider">Cozinha</span>
-        </button>
-        <button onclick="switchView('admin')" id="nav-admin" class="nav-btn flex-1 py-3 flex flex-col items-center gap-1 text-gray-400 hover:text-gray-600 transition-colors">
-            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path></svg>
-            <span class="text-[10px] font-bold uppercase tracking-wider">Admin</span>
-        </button>
-    </nav>
-
-    <div id="plate-modal" class="fixed inset-0 bg-black bg-opacity-50 z-[100] hidden flex flex-col justify-end md:justify-center items-center">
-        <div class="bg-white w-full md:w-[600px] md:rounded-2xl rounded-t-3xl shadow-2xl flex flex-col max-h-[90vh] modal-enter">
-            
-            <div class="p-4 border-b flex justify-between items-center sticky top-0 bg-white md:rounded-t-2xl z-10">
-                <h3 class="font-bold text-lg">Montar Prato</h3>
-                <button onclick="closePlateBuilder()" class="p-2 bg-gray-100 rounded-full hover:bg-gray-200">
-                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
-                </button>
-            </div>
-
-            <div class="p-4 overflow-y-auto flex-1 pb-24">
-                
-                <!-- Tamanho -->
-                <div class="mb-6">
-                    <h4 class="font-bold text-sm text-gray-500 uppercase tracking-wider mb-3">1. Tamanho do Prato</h4>
-                    <div class="grid grid-cols-2 gap-3" id="builder-sizes">
-                        <!-- Populated by JS -->
-                    </div>
-                </div>
-
-                <!-- Proteínas -->
-                <div class="mb-6">
-                    <div class="flex justify-between items-end mb-3">
-                        <h4 class="font-bold text-sm text-gray-500 uppercase tracking-wider">2. Proteínas</h4>
-                        <span class="text-xs text-gray-400">Múltipla escolha</span>
-                    </div>
-                    <div class="flex flex-wrap gap-2" id="builder-proteins"></div>
-                </div>
-
-                <!-- Carboidratos -->
-                <div class="mb-6">
-                    <div class="flex justify-between items-end mb-3">
-                        <h4 class="font-bold text-sm text-gray-500 uppercase tracking-wider">3. Carboidratos</h4>
-                        <span class="text-xs text-gray-400">Múltipla escolha</span>
-                    </div>
-                    <div class="flex flex-wrap gap-2" id="builder-carbs"></div>
-                </div>
-
-                <!-- Acompanhamentos -->
-                <div class="mb-6">
-                    <div class="flex justify-between items-end mb-3">
-                        <h4 class="font-bold text-sm text-gray-500 uppercase tracking-wider">4. Acompanhamentos</h4>
-                        <span class="text-xs text-gray-400">Múltipla escolha</span>
-                    </div>
-                    <div class="flex flex-wrap gap-2" id="builder-sides"></div>
-                </div>
-
-                <!-- Observação do Prato -->
-                <div>
-                    <h4 class="font-bold text-sm text-gray-500 uppercase tracking-wider mb-2">5. Observação do Prato (Ex: S/ Cebola)</h4>
-                    <input type="text" id="builder-obs" placeholder="Alguma restrição ou preferência?" class="w-full px-4 py-3 border rounded-xl focus:ring-2 focus:ring-red-500 outline-none bg-gray-50">
-                </div>
-
-            </div>
-
-            <div class="p-4 border-t bg-white sticky bottom-0 md:rounded-b-2xl shadow-[0_-10px_15px_-3px_rgba(0,0,0,0.05)]">
-                <button onclick="savePlateToCart()" class="w-full py-4 bg-green-500 hover:bg-green-600 text-white font-bold rounded-xl text-lg transition-transform active:scale-[0.98] flex justify-between px-6">
-                    <span>Adicionar à Comanda</span>
-                    <span id="builder-price-display">R$ 0,00</span>
-                </button>
-            </div>
-        </div>
-    </div>
-
-    <!-- MODAL: Adicionar Item ao Cardápio -->
-    <div id="add-item-modal" class="fixed inset-0 bg-black bg-opacity-50 z-[100] hidden flex justify-center items-center">
-        <div class="bg-white rounded-2xl w-full max-w-sm p-5 modal-enter mx-4">
-            <h3 class="font-bold text-lg mb-4 text-gray-800">Adicionar Novo Item</h3>
-            <div class="mb-4">
-                <label class="block text-xs font-semibold text-gray-500 uppercase mb-1">Categoria</label>
-                <select id="new-item-category" class="w-full px-4 py-3 rounded-xl border border-gray-300 focus:ring-2 focus:ring-red-500 outline-none bg-gray-50">
-                    <option value="proteins">Proteína</option>
-                    <option value="carbs">Carboidrato</option>
-                    <option value="sides">Acompanhamento</option>
-                </select>
-            </div>
-            <div class="mb-6">
-                <label class="block text-xs font-semibold text-gray-500 uppercase mb-1">Nome do Item</label>
-                <input type="text" id="new-item-name" placeholder="Ex: Feijão Tropeiro" class="w-full px-4 py-3 rounded-xl border border-gray-300 focus:ring-2 focus:ring-red-500 outline-none bg-gray-50">
-            </div>
-            <div class="flex gap-3">
-                <button onclick="closeAddItemModal()" class="flex-1 py-3 bg-gray-100 text-gray-700 rounded-xl font-bold transition-colors hover:bg-gray-200">Cancelar</button>
-                <button onclick="saveNewMenuItem()" class="flex-1 py-3 bg-green-500 text-white rounded-xl font-bold transition-colors hover:bg-green-600">Salvar</button>
-            </div>
-        </div>
-    </div>
-
-    <!-- MODAL: Zoom do Visor da Cozinha -->
-    <div id="zoom-modal" class="fixed inset-0 bg-black bg-opacity-90 z-[110] hidden justify-center items-center p-4">
-        <div class="bg-white w-full max-w-4xl max-h-[95vh] rounded-3xl flex flex-col relative modal-enter">
-            <button onclick="closeZoomOrder()" class="absolute -top-14 right-0 text-white hover:text-red-400 p-2 flex items-center gap-2 transition-colors">
-                <span class="font-bold text-xl uppercase tracking-widest hidden md:block">ESC para Fechar</span>
-                <svg class="w-10 h-10" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
-            </button>
-            <div id="zoom-modal-content" class="p-6 md:p-10 overflow-y-auto flex-1 text-lg md:text-2xl">
-                <!-- Conteúdo ampliado entra aqui via JS -->
-            </div>
-        </div>
-    </div>
-
-    <!-- Tela de Carregamento da Nuvem -->
-    <div id="cloud-loading" class="fixed inset-0 bg-gray-900 z-[200] flex flex-col justify-center items-center text-white transition-opacity duration-500">
-        <div class="animate-spin rounded-full h-16 w-16 border-t-4 border-b-4 border-red-500 mb-4"></div>
-        <h2 class="text-2xl font-bold">Conectando à Nuvem...</h2>
-        <p class="text-gray-400 mt-2 text-center text-sm px-4">Preparando o sistema para uso simultâneo</p>
-    </div>
-
-    <!-- Script para instalar como App (PWA) -->
-    <script>
-        // Gera o arquivo de configuração do App dinamicamente
-        const manifest = {
-            name: "KDS & PDV",
-            short_name: "KDS PDV",
-            description: "Sistema de Pedidos e Cozinha",
-            start_url: ".",
-            display: "standalone",
-            background_color: "#f3f4f6",
-            theme_color: "#ef4444",
-            icons: [
-                {
-                    src: "https://placehold.co/192x192/ef4444/ffffff?text=KDS",
-                    sizes: "192x192",
-                    type: "image/png"
-                },
-                {
-                    src: "https://placehold.co/512x512/ef4444/ffffff?text=KDS",
-                    sizes: "512x512",
-                    type: "image/png"
-                }
-            ]
-        };
-        const manifestBlob = new Blob([JSON.stringify(manifest)], { type: 'application/json' });
-        const manifestUrl = URL.createObjectURL(manifestBlob);
-        document.head.insertAdjacentHTML('beforeend', '<link rel="manifest" href="' + manifestUrl + '">');
-
-        // Registra o Service Worker (necessário para o Android/iOS reconhecerem como App)
-        const swCode = "self.addEventListener('install', (e) => self.skipWaiting()); self.addEventListener('activate', (e) => self.clients.claim()); self.addEventListener('fetch', (e) => {});";
-        const swBlob = new Blob([swCode], { type: 'application/javascript' });
-        const swUrl = URL.createObjectURL(swBlob);
-        if ('serviceWorker' in navigator) {
-            navigator.serviceWorker.register(swUrl).catch(err => console.log('SW falhou', err));
-        }
-    </script>
-
+    <!-- Firebase SDKs (Modular) -->
     <script type="module">
-        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
-        import { getAuth, signInAnonymously, signInWithCustomToken } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
-        import { getFirestore, doc, getDoc, setDoc, updateDoc, deleteDoc, onSnapshot, collection } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
+        import { getAuth, signInAnonymously, signInWithCustomToken } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
+        import { getFirestore, collection, addDoc, onSnapshot, updateDoc, deleteDoc, doc, serverTimestamp, query, orderBy } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 
-        const appId = typeof __app_id !== 'undefined' ? __app_id : 'kds-pdv-app';
-        
-        // Configuração do Firebase do seu restaurante (pedidos-janta)
-        const firebaseConfig = {
-            apiKey: "AIzaSyBZz3WuV9RHjacAjfHX8yhrQa70B5Dv3VI",
+        // Configuração automática do Firebase
+        const firebaseConfig = typeof __FIREBASE_CONFIG__ !== 'undefined' ? JSON.parse(__FIREBASE_CONFIG__) : {
+            apiKey: "AIzaSyDummyKeyForLocalTestingOrCustomSetup",
             authDomain: "pedidos-janta.firebaseapp.com",
             projectId: "pedidos-janta",
-            storageBucket: "pedidos-janta.firebasestorage.app",
-            messagingSenderId: "1079688032798",
-            appId: "1:1079688032798:web:625721ce31d0b9e9bf740f",
-            measurementId: "G-DGNFNMGDBX"
+            storageBucket: "pedidos-janta.appspot.com",
+            messagingSenderId: "123456789",
+            appId: "1:123456789:web:abcdef"
         };
 
         const app = initializeApp(firebaseConfig);
         const auth = getAuth(app);
         const db = getFirestore(app);
 
-        // --- 1. STATE MANAGEMENT & INITIALIZATION ---
-        const DEFAULT_MENU = {
-            proteins: [
-                { id: 'p1', name: 'Strogonoff', active: true },
-                { id: 'p2', name: 'Carne Trinchada', active: true },
-                { id: 'p3', name: 'Creme de Galinha', active: true },
-                { id: 'p4', name: 'Bife Acebolado', active: true }
-            ],
-            carbs: [
-                { id: 'c1', name: 'Arroz Branco', active: true },
-                { id: 'c2', name: 'Macarrão', active: true },
-                { id: 'c3', name: 'Baião de Dois', active: true }
-            ],
-            sides: [
-                { id: 's1', name: 'Batata Palha', active: true },
-                { id: 's2', name: 'Salada', active: true },
-                { id: 's3', name: 'Farofa', active: true },
-                { id: 's4', name: 'Purê', active: true }
-            ]
-        };
-
-        const DEFAULT_PRICES = { P: 18.00, G: 25.00, Sopa: 12.00 };
-
-        let State = {
-            menu: DEFAULT_MENU,
-            prices: DEFAULT_PRICES,
-            orders: [],
-            history: {},
-            lastOrderId: 0,
-            cart: [] 
-        };
-
-        let currentPlate = { size: null, proteins: [], carbs: [], sides: [], obs: '' };
-
-        // Referências do Firestore (Dados Públicos do Restaurante na Nuvem)
-        const configRef = doc(db, 'artifacts', appId, 'public', 'data', 'settings', 'main');
-        const ordersRef = collection(db, 'artifacts', appId, 'public', 'data', 'active_orders');
-        const historyRef = collection(db, 'artifacts', appId, 'public', 'data', 'history_orders');
-
-        // Exportando funções para o HTML acessar (necessário após integração da nuvem)
-        window.switchView = switchView;
-        window.switchAdminTab = switchAdminTab;
-        window.openPlateBuilder = openPlateBuilder;
-        window.closePlateBuilder = closePlateBuilder;
-        window.setPlateSize = setPlateSize;
-        window.togglePlateItem = togglePlateItem;
-        window.savePlateToCart = savePlateToCart;
-        window.removePlateFromCart = removePlateFromCart;
-        window.sendOrder = sendOrder;
-        window.changeOrderStatus = changeOrderStatus;
-        window.openZoomOrder = openZoomOrder;
-        window.closeZoomOrder = closeZoomOrder;
-        window.loadPricesAdmin = loadPricesAdmin;
-        window.savePrices = savePrices;
-        window.toggleMenuItemStatus = toggleMenuItemStatus;
-        window.deleteMenuItem = deleteMenuItem;
-        window.addNewMenuItem = addNewMenuItem;
-        window.closeAddItemModal = closeAddItemModal;
-        window.saveNewMenuItem = saveNewMenuItem;
-
-        // --- 2. UTILS & UI HELPERS ---
-        function showToast(message, type = 'success') {
-            const container = document.getElementById('toast-container');
-            const toast = document.createElement('div');
-            const bgColor = type === 'error' ? 'bg-red-500' : 'bg-gray-800';
-            const icon = type === 'error' ? '⚠️' : '✅';
-            
-            toast.className = `toast-enter flex items-center gap-3 ${bgColor} text-white px-5 py-3 rounded-xl shadow-xl text-sm font-medium z-[999]`;
-            toast.innerHTML = `<span>${icon}</span> <span>${message}</span>`;
-            
-            container.appendChild(toast);
-            setTimeout(() => {
-                toast.classList.replace('toast-enter', 'toast-exit');
-                toast.addEventListener('animationend', () => toast.remove());
-            }, 3000);
-        }
-
-        function formatCurrency(value) {
-            return value.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
-        }
-
-        function formatDateBR(dateStr) {
-            const [year, month, day] = dateStr.split('-');
-            return `${day}/${month}/${year}`;
-        }
-
-        // --- 3. NAVIGATION LOGIC ---
-        function switchView(viewName) {
-            // Hide all views
-            document.querySelectorAll('.view-section').forEach(v => {
-                v.classList.remove('block');
-                v.classList.add('hidden');
-            });
-            // Show target
-            document.getElementById(`view-${viewName}`).classList.remove('hidden');
-            document.getElementById(`view-${viewName}`).classList.add('block');
-
-            // Update Nav styling
-            document.querySelectorAll('.nav-btn').forEach(btn => {
-                btn.classList.remove('text-red-600');
-                btn.classList.add('text-gray-400');
-            });
-            document.getElementById(`nav-${viewName}`).classList.remove('text-gray-400');
-            document.getElementById(`nav-${viewName}`).classList.add('text-red-600');
-
-            // Update Header Title
-            const titles = {
-                'lancamento': 'Lançar Pedido',
-                'status': 'Status dos Pedidos',
-                'cozinha': 'Visor da Cozinha',
-                'admin': 'Administração'
-            };
-            document.getElementById('header-title').innerText = titles[viewName];
-
-            // Trigger specific renders based on view
-            if(viewName === 'cozinha') renderKitchenView();
-            if(viewName === 'status') renderWaiterStatus();
-            if(viewName === 'admin') {
-                renderMenuAdmin();
-                loadPricesAdmin();
-                renderHistoryAdmin();
+        // Autenticação anônima obrigatória com tratamento de erro
+        async function initAuth() {
+            try {
+                if (typeof __FIREBASE_CUSTOM_TOKEN__ !== 'undefined' && __FIREBASE_CUSTOM_TOKEN__) {
+                    await signInWithCustomToken(auth, __FIREBASE_CUSTOM_TOKEN__);
+                } else {
+                    await signInAnonymously(auth);
+                }
+                console.log("Autenticado com sucesso!");
+                carregarPedidos();
+            } catch (error) {
+                console.error("Erro na autenticação:", error);
+                document.getElementById('erro-conexao').classList.remove('hidden');
             }
         }
 
-        function switchAdminTab(tabName) {
-            document.querySelectorAll('.admin-section').forEach(el => el.classList.add('hidden'));
-            document.getElementById(`admin-${tabName}`).classList.remove('hidden');
-            
-            document.querySelectorAll('.admin-tab').forEach(el => {
-                el.classList.remove('text-red-600', 'border-b-2', 'border-red-600');
-                el.classList.add('text-gray-500');
+        // Estado Global do Carrinho do PDV
+        window.carrinho = [];
+        window.tipoPedidoSelecionado = 'Mesa';
+
+        window.mudarTipo = function(tipo) {
+            window.tipoPedidoSelecionado = tipo;
+            document.querySelectorAll('.btn-tipo').forEach(btn => {
+                btn.classList.remove('bg-amber-600', 'text-white');
+                btn.classList.add('bg-gray-200', 'text-gray-700');
             });
-            const activeTab = document.getElementById(`tab-${tabName}`);
-            activeTab.classList.remove('text-gray-500');
-            activeTab.classList.add('text-red-600', 'border-b-2', 'border-red-600');
-        }
-
-        // --- STREAMING_CHUNK: 4. PLATE BUILDER LOGIC (PDV) ---
-        function openPlateBuilder() {
-            // Reset builder state
-            currentPlate = { size: 'P', proteins: [], carbs: [], sides: [], obs: '' };
-            document.getElementById('builder-obs').value = '';
+            document.getElementById('btn-' + tipo).classList.remove('bg-gray-200', 'text-gray-700');
+            document.getElementById('btn-' + tipo).classList.add('bg-amber-600', 'text-white');
             
-            renderPlateBuilderUI();
-            document.getElementById('plate-modal').classList.remove('hidden');
-            document.body.style.overflow = 'hidden'; // Prevent background scroll
+            const labelIdentificacao = document.getElementById('label-identificacao');
+            if(tipo === 'Mesa') labelIdentificacao.innerText = "Número da Mesa:";
+            else if(tipo === 'Delivery') labelIdentificacao.innerText = "Nome do Cliente / Endereço:";
+            else labelIdentificacao.innerText = "Identificação (Ex: Balcão 01):";
         }
 
-        function closePlateBuilder() {
-            document.getElementById('plate-modal').classList.add('hidden');
-            document.body.style.overflow = 'auto';
-        }
-
-        function renderPlateBuilderUI() {
-            // Sizes
-            const sizesHtml = `
-                <div onclick="setPlateSize('P')" class="selectable-item ${currentPlate.size === 'P' ? 'selected' : 'bg-white border-gray-200 text-gray-700'} border-2 rounded-xl p-3 text-center cursor-pointer transition-colors font-bold">
-                    Tamanho P <div class="text-xs font-normal opacity-80">${formatCurrency(State.prices.P)}</div>
-                </div>
-                <div onclick="setPlateSize('G')" class="selectable-item ${currentPlate.size === 'G' ? 'selected' : 'bg-white border-gray-200 text-gray-700'} border-2 rounded-xl p-3 text-center cursor-pointer transition-colors font-bold">
-                    Tamanho G <div class="text-xs font-normal opacity-80">${formatCurrency(State.prices.G)}</div>
-                </div>
-                <div onclick="setPlateSize('Sopa')" class="selectable-item ${currentPlate.size === 'Sopa' ? 'selected' : 'bg-white border-gray-200 text-gray-700'} border-2 rounded-xl p-3 text-center cursor-pointer transition-colors font-bold flex flex-col justify-center">
-                    Sopa <div class="text-xs font-normal opacity-80">${formatCurrency(State.prices.Sopa)}</div>
-                </div>
-            `;
-            document.getElementById('builder-sizes').className = "grid grid-cols-3 gap-3";
-            document.getElementById('builder-sizes').innerHTML = sizesHtml;
-            document.getElementById('builder-price-display').innerText = formatCurrency(State.prices[currentPlate.size]);
-
-            // Render Groups
-            const renderGroup = (items, category, selectedArray) => {
-                return items.filter(i => i.active).map(item => `
-                    <div onclick="togglePlateItem('${category}', '${item.name}')" 
-                         class="selectable-item ${selectedArray.includes(item.name) ? 'selected' : 'bg-white border-gray-200 text-gray-700'} border rounded-lg px-4 py-2 cursor-pointer transition-colors text-sm font-medium">
-                        ${item.name}
-                    </div>
-                `).join('');
-            };
-
-            document.getElementById('builder-proteins').innerHTML = renderGroup(State.menu.proteins, 'proteins', currentPlate.proteins);
-            document.getElementById('builder-carbs').innerHTML = renderGroup(State.menu.carbs, 'carbs', currentPlate.carbs);
-            document.getElementById('builder-sides').innerHTML = renderGroup(State.menu.sides, 'sides', currentPlate.sides);
-        }
-
-        function setPlateSize(size) {
-            currentPlate.size = size;
-            renderPlateBuilderUI();
-        }
-
-        function togglePlateItem(category, itemName) {
-            const idx = currentPlate[category].indexOf(itemName);
-            if (idx > -1) {
-                currentPlate[category].splice(idx, 1);
+        window.adicionarAoCarrinho = function(nome, preco, tamanho) {
+            const itemExistente = window.carrinho.find(i => i.nome === nome && i.tamanho === tamanho);
+            if(itemExistente) {
+                itemExistente.qtd++;
             } else {
-                currentPlate[category].push(itemName);
+                window.carrinho.push({ nome, preco, tamanho, qtd: 1 });
             }
-            renderPlateBuilderUI();
+            atualizarCarrinhoUI();
         }
 
-        function savePlateToCart() {
-            currentPlate.obs = document.getElementById('builder-obs').value.trim();
-            
-            const plateToSave = {
-                id: Date.now(),
-                size: currentPlate.size,
-                price: State.prices[currentPlate.size],
-                proteins: [...currentPlate.proteins],
-                carbs: [...currentPlate.carbs],
-                sides: [...currentPlate.sides],
-                obs: currentPlate.obs
-            };
-
-            State.cart.push(plateToSave);
-            closePlateBuilder();
-            renderCart();
-            showToast('Prato adicionado à comanda!');
+        window.alterarQtd = function(index, delta) {
+            window.carrinho[index].qtd += delta;
+            if(window.carrinho[index].qtd <= 0) {
+                window.carrinho.splice(index, 1);
+            }
+            atualizarCarrinhoUI();
         }
 
-        // --- STREAMING_CHUNK: 5. CART & ORDER SUBMISSION ---
-        function renderCart() {
-            const container = document.getElementById('cart-items');
-            const emptyMsg = document.getElementById('cart-empty');
-            const totalDisplay = document.getElementById('cart-total');
-            
-            container.innerHTML = '';
-            
-            if (State.cart.length === 0) {
-                emptyMsg.style.display = 'block';
-                totalDisplay.innerText = 'R$ 0,00';
-                return;
-            }
-
-            emptyMsg.style.display = 'none';
+        function atualizarCarrinhoUI() {
+            const lista = document.getElementById('carrinho-lista');
+            const totalEl = document.getElementById('carrinho-total');
+            lista.innerHTML = '';
             let total = 0;
 
-            State.cart.forEach((plate, index) => {
-                total += plate.price;
-                
-                const details = [
-                    plate.proteins.join(', '),
-                    plate.carbs.join(', '),
-                    plate.sides.join(', ')
-                ].filter(Boolean).join(' | ');
+            if(window.carrinho.length === 0) {
+                lista.innerHTML = '<p class="text-gray-400 text-center py-4">Nenhum item adicionado.</p>';
+                totalEl.innerText = 'R$ 0,00';
+                return;
+            }
 
-                container.innerHTML += `
-                    <div class="bg-gray-50 rounded-xl p-3 border border-gray-200 relative pr-10">
-                        <div class="flex justify-between items-start mb-1">
-                            <span class="font-bold text-gray-800">Prato ${index + 1} <span class="bg-gray-200 text-gray-700 px-1.5 py-0.5 rounded text-xs ml-1">${plate.size}</span></span>
-                            <span class="font-semibold text-gray-700">${formatCurrency(plate.price)}</span>
+            window.carrinho.forEach((item, index) => {
+                total += item.preco * item.qtd;
+                lista.innerHTML += `
+                    <div class="flex justify-between items-center bg-gray-50 p-2 rounded mb-2 border border-gray-100">
+                        <div>
+                            <span class="font-medium text-gray-800">${item.nome}</span> <span class="text-xs bg-amber-100 text-amber-800 px-1.5 py-0.5 rounded">${item.tamanho}</span>
+                            <div class="text-xs text-gray-500">R$ ${item.preco.toFixed(2)} un</div>
                         </div>
-                        <p class="text-xs text-gray-600 mb-1">${details || '<span class="italic opacity-50">Nenhum item selecionado</span>'}</p>
-                        ${plate.obs ? `<p class="text-xs text-red-600 font-medium">Obs: ${plate.obs}</p>` : ''}
-                        
-                        <button onclick="removePlateFromCart(${plate.id})" class="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-red-500 p-2">
-                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
-                        </button>
+                        <div class="flex items-center space-x-2">
+                            <button onclick="alterarQtd(${index}, -1)" class="bg-gray-200 px-2 py-0.5 rounded text-gray-700 font-bold">-</button>
+                            <span class="text-sm font-semibold">${item.qtd}</span>
+                            <button onclick="alterarQtd(${index}, 1)" class="bg-gray-200 px-2 py-0.5 rounded text-gray-700 font-bold">+</button>
+                        </div>
                     </div>
                 `;
             });
-
-            totalDisplay.innerText = formatCurrency(total);
+            totalEl.innerText = `R$ ${total.toFixed(2)}`;
         }
 
-        function removePlateFromCart(plateId) {
-            State.cart = State.cart.filter(p => p.id !== plateId);
-            renderCart();
-        }
-
-        async function sendOrder() {
-            if (!auth.currentUser) {
-                showToast("Aguarde a conexão com a nuvem...", "error");
+        window.enviarPedido = async function() {
+            const identificacao = document.getElementById('input-identificacao').value.trim();
+            if(!identificacao) {
+                alert('Por favor, informe a identificação (Mesa ou Cliente)!');
+                return;
+            }
+            if(window.carrinho.length === 0) {
+                alert('O carrinho está vazio!');
                 return;
             }
 
-            const customer = document.getElementById('order-customer').value.trim();
-            const type = document.getElementById('order-type').value;
-            const obs = document.getElementById('order-obs').value.trim();
+            const total = window.carrinho.reduce((sum, i) => sum + (i.preco * i.qtd), 0);
 
-            if (!customer) {
-                showToast('Informe a Mesa ou Nome do Cliente!', 'error');
-                document.getElementById('order-customer').focus();
-                return;
-            }
+            try {
+                await addDoc(collection(db, "pedidos"), {
+                    tipo: window.tipoPedidoSelecionado,
+                    identificacao: identificacao,
+                    itens: window.carrinho,
+                    total: total,
+                    status: 'pendente', // pendente, preparo, pronto, entregue
+                    criadoEm: serverTimestamp()
+                });
 
-            if (State.cart.length === 0) {
-                showToast('A comanda está vazia. Adicione pratos!', 'error');
-                return;
-            }
-
-            // Increment ID (Atualizando e Salvando na Nuvem)
-            State.lastOrderId++;
-            await updateDoc(configRef, { lastOrderId: State.lastOrderId });
-
-            const total = State.cart.reduce((sum, plate) => sum + plate.price, 0);
-            const now = new Date();
-
-            const newOrder = {
-                id: State.lastOrderId,
-                customer: customer,
-                type: type,
-                status: 'pending', // pending -> preparing -> ready
-                timestamp: now.toISOString(),
-                timeString: now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-                total_price: total,
-                observations: obs,
-                plates: [...State.cart]
-            };
-
-            // Salvar pedido no Banco de Dados em tempo real
-            await setDoc(doc(ordersRef, newOrder.id.toString()), newOrder);
-
-            // Reset Form
-            State.cart = [];
-            document.getElementById('order-customer').value = '';
-            document.getElementById('order-obs').value = '';
-            document.getElementById('order-type').value = 'Local';
-            renderCart();
-
-            showToast(`Pedido #${newOrder.id} enviado para a cozinha!`);
-        }
-
-        // --- STREAMING_CHUNK: 6. KITCHEN KDS LOGIC ---
-        async function changeOrderStatus(orderId, newStatus) {
-            if (!auth.currentUser) return;
-            
-            const order = State.orders.find(o => o.id === orderId);
-            if (!order) return;
-            
-            if (newStatus === 'ready') {
-                order.status = 'ready';
-                order.completedAt = new Date().toISOString();
-                
-                // Remove da lista de ativos e manda pro histórico (Na Nuvem)
-                await deleteDoc(doc(ordersRef, order.id.toString()));
-                await setDoc(doc(historyRef, order.id.toString()), order);
-                
-                showToast(`Pedido #${order.id} concluído!`);
-            } else {
-                // Apenas atualiza o status (Ex: Preparando) na Nuvem
-                order.status = newStatus;
-                await updateDoc(doc(ordersRef, order.id.toString()), { status: newStatus });
+                window.carrinho = [];
+                document.getElementById('input-identificacao').value = '';
+                atualizarCarrinhoUI();
+                alert('Pedido enviado com sucesso para a Cozinha!');
+            } catch (e) {
+                console.error("Erro ao enviar pedido: ", e);
+                alert('Erro ao enviar pedido. Verifique o console.');
             }
         }
 
-        function renderKitchenView() {
-            const container = document.getElementById('kitchen-orders-container');
-            if(!container) return; // Prevent errors if not loaded
-            
-            container.innerHTML = '';
+        // Carregar e Ouvir Pedidos em Tempo Real (KDS)
+        function carregarPedidos() {
+            const q = query(collection(db, "pedidos"), orderBy("criadoEm", "desc"));
+            onSnapshot(q, (snapshot) => {
+                const pendentesEl = document.getElementById('col-pendentes');
+                const preparoEl = document.getElementById('col-preparo');
+                const prontosEl = document.getElementById('col-prontos');
 
-            if (State.orders.length === 0) {
-                container.innerHTML = `
-                    <div class="col-span-full flex flex-col items-center justify-center h-64 text-gray-400">
-                        <svg class="w-16 h-16 mb-4 opacity-50" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M5 13l4 4L19 7"></path></svg>
-                        <p class="text-xl font-medium">Cozinha limpa!</p>
-                        <p class="text-sm mt-1">Nenhum pedido na fila.</p>
-                    </div>`;
-                return;
-            }
+                pendentesEl.innerHTML = '';
+                preparoEl.innerHTML = '';
+                prontosEl.innerHTML = '';
 
-            State.orders.forEach(order => {
-                const isPreparing = order.status === 'preparing';
-                const borderColor = isPreparing ? 'border-t-blue-500' : 'border-t-yellow-500';
-                const statusBadge = isPreparing 
-                    ? '<span class="bg-blue-100 text-blue-800 text-[10px] uppercase font-bold px-2 py-1 rounded">Preparando</span>'
-                    : '<span class="bg-yellow-100 text-yellow-800 text-[10px] uppercase font-bold px-2 py-1 rounded">Pendente</span>';
+                let countPendentes = 0, countPreparo = 0, countProntos = 0;
 
-                const typeColor = order.type === 'Local' ? 'bg-blue-600' :
-                                  order.type === 'Viagem' ? 'bg-purple-600' :
-                                  order.type === 'Retirada' ? 'bg-orange-500' : 'bg-red-500';
-                const typeIcon = order.type === 'Local' ? '🍽️' :
-                                 order.type === 'Viagem' ? '🥡' :
-                                 order.type === 'Retirada' ? '🚶' : '🛵';
+                snapshot.forEach((docSnap) => {
+                    const pedido = docSnap.id;
+                    const data = docSnap.data();
+                    const itensHtml = data.itens.map(i => `<li class="text-sm border-b border-gray-100 py-1 flex justify-between"><span>${i.qtd}x ${i.nome} <span class="text-xs text-gray-500">(${i.tamanho})</span></span></li>`).join('');
 
-                let platesHtml = order.plates.map((p, i) => {
-                    const hasP = p.proteins.length > 0;
-                    const hasC = p.carbs.length > 0;
-                    const hasS = p.sides.length > 0;
-                    
-                    return `
-                        <div class="mb-3 bg-gray-50 p-3 border-2 border-gray-200 rounded-xl">
-                            <div class="flex justify-between items-center border-b-2 border-gray-200 pb-2 mb-2">
-                                <span class="font-black text-gray-800 uppercase">Item ${i+1}</span>
-                                <span class="bg-gray-800 text-white px-2 py-1 rounded text-[10px] sm:text-xs font-bold uppercase tracking-wider shadow-sm">
-                                    Tamanho: ${p.size}
-                                </span>
-                            </div>
-                            <ul class="text-sm text-gray-700 space-y-1 font-medium ml-1">
-                                ${hasP ? `<li><span class="text-gray-500 font-normal">Proteínas:</span> ${p.proteins.join(', ')}</li>` : ''}
-                                ${hasC ? `<li><span class="text-gray-500 font-normal">Carbos:</span> ${p.carbs.join(', ')}</li>` : ''}
-                                ${hasS ? `<li><span class="text-gray-500 font-normal">Acomp:</span> ${p.sides.join(', ')}</li>` : ''}
-                                ${!hasP && !hasC && !hasS ? `<li class="text-gray-400 italic">Nenhum item selecionado</li>` : ''}
-                            </ul>
-                            ${p.obs ? `<div class="mt-2 bg-red-100 text-red-700 p-2 rounded border border-red-200 text-xs font-bold flex gap-1 items-start"><svg class="w-4 h-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path></svg> OBS: ${p.obs}</div>` : ''}
-                        </div>
-                    `;
-                }).join('');
+                    let cardClass = "bg-white border-l-4 p-4 rounded-lg shadow-md relative mb-3 ";
+                    let botoesAcao = '';
 
-                const card = document.createElement('div');
-                card.className = `bg-white rounded-xl shadow-sm border-t-4 ${borderColor} border-x border-b border-gray-200 p-4 flex flex-col h-full`;
-                card.innerHTML = `
-                    <div class="flex-1">
-                        <div class="flex justify-between items-start mb-2">
-                            <div>
-                                <div class="text-xl font-black text-gray-900 leading-none">#${order.id}</div>
-                                <div class="text-sm font-bold text-gray-600 mt-1">${order.customer}</div>
-                            </div>
-                            <div class="flex flex-col items-end gap-2">
-                                ${statusBadge}
-                                <button onclick="openZoomOrder(${order.id})" class="text-gray-500 hover:text-gray-900 p-1 border rounded-md bg-gray-50 hover:bg-gray-100 shadow-sm transition-colors" title="Ampliar Pedido">
-                                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0zM10 7v3m0 0v3m0-3h3m-3 0H7"></path></svg>
+                    if(data.status === 'pendente') {
+                        countPendentes++;
+                        cardClass += "border-amber-500";
+                        botoesAcao = `<button onclick="mudarStatus('${pedido}', 'preparo')" class="w-full mt-2 bg-amber-500 hover:bg-amber-600 text-white text-xs py-1.5 rounded font-semibold transition">Iniciar Preparo</button>`;
+                    } else if(data.status === 'preparo') {
+                        countPreparo++;
+                        cardClass += "border-blue-500";
+                        botoesAcao = `<button onclick="mudarStatus('${pedido}', 'pronto')" class="w-full mt-2 bg-blue-600 hover:bg-blue-700 text-white text-xs py-1.5 rounded font-semibold transition">Marcar como Pronto</button>`;
+                    } else {
+                        countProntos++;
+                        cardClass += "border-green-500";
+                        botoesAcao = `<button onclick="mudarStatus('${pedido}', 'entregue')" class="w-full mt-2 bg-green-600 hover:bg-green-700 text-white text-xs py-1.5 rounded font-semibold transition">Concluir / Arquivar</button>`;
+                    }
+
+                    const cardHtml = `
+                        <div class="${cardClass}">
+                            <div class="flex justify-between items-start mb-2">
+                                <div>
+                                    <span class="text-xs font-bold px-2 py-0.5 rounded bg-gray-100 text-gray-700 uppercase">${data.tipo}</span>
+                                    <h4 class="text-lg font-bold text-gray-900 mt-1">${data.identificacao}</h4>
+                                </div>
+                                <button onclick="excluirPedido('${pedido}')" class="text-red-400 hover:text-red-600 p-1" title="Excluir Pedido">
+                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
                                 </button>
                             </div>
-                        </div>
-                        
-                        <!-- TYPE BANNER -->
-                        <div class="w-full ${typeColor} text-white text-center font-black uppercase tracking-widest py-1.5 text-[11px] sm:text-xs rounded-lg mb-4 shadow-sm border border-black/10 flex items-center justify-center gap-1">
-                            ${typeIcon} PARA ${order.type}
-                        </div>
-                        
-                        <div class="flex justify-between items-center border-b border-gray-100 pb-2 mb-3">
-                            <div class="text-xs font-bold text-gray-500 bg-gray-100 px-2 py-1 rounded shadow-sm border border-gray-200">⏱️ ${order.timeString}</div>
-                        </div>
-
-                        ${order.observations ? `<div class="bg-red-50 text-red-700 p-3 rounded-lg text-sm font-bold mb-4 border border-red-200 shadow-sm flex items-start gap-2"><svg class="w-5 h-5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg> <div>Geral: ${order.observations}</div></div>` : ''}
-                        
-                        <div class="space-y-2">
-                            ${platesHtml}
-                        </div>
-                    </div>
-                    
-                    <div class="mt-4 pt-3 border-t flex gap-2">
-                        ${!isPreparing ? `
-                            <button onclick="changeOrderStatus(${order.id}, 'preparing')" class="flex-1 bg-blue-50 hover:bg-blue-100 text-blue-700 border border-blue-200 py-2 rounded-lg font-bold transition-colors text-sm">
-                                Preparar
-                            </button>
-                        ` : ''}
-                        <button onclick="changeOrderStatus(${order.id}, 'ready')" class="flex-1 bg-green-500 hover:bg-green-600 text-white border border-green-600 py-2 rounded-lg font-bold transition-colors text-sm flex items-center justify-center gap-1 shadow-sm">
-                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
-                            Pronto!
-                        </button>
-                    </div>
-                `;
-                container.appendChild(card);
-            });
-        }
-
-        // --- FUNÇÕES DE ZOOM DA COZINHA ---
-        function openZoomOrder(orderId) {
-            const order = State.orders.find(o => o.id === orderId);
-            if (!order) return;
-
-            const modalContent = document.getElementById('zoom-modal-content');
-            
-            const typeColor = order.type === 'Local' ? 'bg-blue-600' :
-                              order.type === 'Viagem' ? 'bg-purple-600' :
-                              order.type === 'Retirada' ? 'bg-orange-500' : 'bg-red-500';
-            const typeIcon = order.type === 'Local' ? '🍽️' :
-                             order.type === 'Viagem' ? '🥡' :
-                             order.type === 'Retirada' ? '🚶' : '🛵';
-
-            let platesHtml = order.plates.map((p, i) => {
-                const hasP = p.proteins.length > 0;
-                const hasC = p.carbs.length > 0;
-                const hasS = p.sides.length > 0;
-
-                return `
-                    <div class="mb-6 bg-gray-50 p-6 border-4 border-gray-200 rounded-3xl">
-                        <div class="flex flex-col md:flex-row md:justify-between md:items-center border-b-4 border-gray-200 pb-4 mb-4 gap-3">
-                            <span class="font-black text-3xl md:text-4xl text-gray-800 uppercase">Item ${i+1}</span>
-                            <span class="bg-gray-800 text-white px-5 py-2 rounded-xl text-2xl md:text-3xl font-black uppercase tracking-widest text-center shadow-md">
-                                TAMANHO: ${p.size}
-                            </span>
-                        </div>
-                        <ul class="text-2xl md:text-3xl text-gray-700 space-y-3 font-medium ml-2">
-                            ${hasP ? `<li><span class="text-gray-500 font-bold">Proteínas:</span> ${p.proteins.join(', ')}</li>` : ''}
-                            ${hasC ? `<li><span class="text-gray-500 font-bold">Carbos:</span> ${p.carbs.join(', ')}</li>` : ''}
-                            ${hasS ? `<li><span class="text-gray-500 font-bold">Acomp:</span> ${p.sides.join(', ')}</li>` : ''}
-                            ${!hasP && !hasC && !hasS ? `<li class="text-gray-400 italic">Nenhum item selecionado</li>` : ''}
-                        </ul>
-                        ${p.obs ? `<div class="mt-6 bg-red-100 text-red-700 p-5 rounded-2xl border-4 border-red-200 text-2xl md:text-3xl font-black flex gap-3 items-start"><svg class="w-10 h-10 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path></svg> <div>OBSERVAÇÃO: ${p.obs}</div></div>` : ''}
-                    </div>
-                `;
-            }).join('');
-
-            modalContent.innerHTML = `
-                <div class="border-b-4 border-gray-200 pb-5 mb-6">
-                    <h2 class="text-5xl md:text-6xl font-black text-gray-900 mb-6">#${order.id} - ${order.customer}</h2>
-                    <div class="flex flex-col md:flex-row gap-4">
-                        <div class="flex-1 ${typeColor} text-white px-6 py-4 rounded-2xl text-3xl md:text-4xl font-black uppercase tracking-widest text-center shadow-md flex items-center justify-center gap-3">
-                            ${typeIcon} PARA ${order.type}
-                        </div>
-                        <div class="text-3xl md:text-4xl font-black bg-gray-100 text-gray-800 px-6 py-4 rounded-2xl border-4 border-gray-300 text-center flex items-center justify-center gap-3">
-                            ⏱️ às ${order.timeString}
-                        </div>
-                    </div>
-                </div>
-                ${order.observations ? `<div class="bg-red-50 text-red-800 p-6 rounded-3xl text-3xl md:text-4xl font-black mb-8 border-4 border-red-200 shadow-md flex gap-4 items-start"><svg class="w-12 h-12 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg> <div>GERAL: ${order.observations}</div></div>` : ''}
-                <div class="space-y-8">
-                    ${platesHtml}
-                </div>
-            `;
-            
-            const modal = document.getElementById('zoom-modal');
-            modal.classList.remove('hidden');
-            modal.classList.add('flex');
-            document.body.style.overflow = 'hidden';
-        }
-
-        function closeZoomOrder() {
-            const modal = document.getElementById('zoom-modal');
-            modal.classList.add('hidden');
-            modal.classList.remove('flex');
-            document.body.style.overflow = 'auto';
-        }
-
-        // Permitir fechar o modal com a tecla ESC
-        document.addEventListener('keydown', function(event) {
-            if (event.key === "Escape") {
-                closeZoomOrder();
-                closePlateBuilder();
-                closeAddItemModal();
-            }
-        });
-
-        // --- STREAMING_CHUNK: 7. WAITER STATUS VIEW ---
-        function renderWaiterStatus() {
-            const container = document.getElementById('waiter-status-container');
-            if(!container) return;
-
-            container.innerHTML = '';
-            
-            if (State.orders.length === 0) {
-                container.innerHTML = `<div class="col-span-full text-gray-500 italic">Nenhum pedido ativo no momento.</div>`;
-                return;
-            }
-
-            // Reverse to show newest on top
-            [...State.orders].reverse().forEach(order => {
-                const isPreparing = order.status === 'preparing';
-                
-                let statusColor = 'text-yellow-600 bg-yellow-50 border-yellow-200';
-                let statusText = '⏳ Na Fila (Pendente)';
-                let icon = '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path>';
-
-                if (isPreparing) {
-                    statusColor = 'text-blue-600 bg-blue-50 border-blue-200';
-                    statusText = '🔥 Preparando na Cozinha';
-                    icon = '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 18.657A8 8 0 016.343 7.343S7 9 9 10c0-2 .5-5 2.986-7C14 5 16.09 5.777 17.656 7.343A7.975 7.975 0 0120 13a7.975 7.975 0 01-2.343 5.657z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.879 16.121A3 3 0 1012.015 11L11 14H9c0 .768.293 1.536.879 2.121z"></path>';
-                }
-
-                container.innerHTML += `
-                    <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-4 flex justify-between items-center">
-                        <div>
-                            <div class="font-bold text-gray-800 text-lg">#${order.id} - ${order.customer}</div>
-                            <div class="text-sm text-gray-600 font-medium">${order.plates.length} prato(s) • ${formatCurrency(order.total_price)}</div>
-                            <div class="text-xs font-bold text-gray-500 mt-1 bg-gray-100 inline-block px-1.5 py-0.5 rounded">⏱️ ${order.timeString} • ${order.type}</div>
-                        </div>
-                        <div class="flex items-center gap-2 border px-3 py-1.5 rounded-lg text-sm font-bold ${statusColor}">
-                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">${icon}</svg>
-                            ${statusText}
-                        </div>
-                    </div>
-                `;
-            });
-        }
-
-        // --- STREAMING_CHUNK: 8. ADMIN: PRICES, MENU & HISTORY ---
-        
-        // --- ADMIN PREÇOS ---
-        function loadPricesAdmin() {
-            document.getElementById('price-p').value = State.prices.P.toFixed(2);
-            document.getElementById('price-g').value = State.prices.G.toFixed(2);
-            document.getElementById('price-sopa').value = State.prices.Sopa.toFixed(2);
-        }
-
-        async function savePrices() {
-            if (!auth.currentUser) return;
-
-            const p = parseFloat(document.getElementById('price-p').value);
-            const g = parseFloat(document.getElementById('price-g').value);
-            const sopa = parseFloat(document.getElementById('price-sopa').value);
-            
-            if (isNaN(p) || isNaN(g) || isNaN(sopa) || p < 0 || g < 0 || sopa < 0) {
-                showToast('Valores inválidos!', 'error');
-                return;
-            }
-
-            State.prices = { P: p, G: g, Sopa: sopa };
-            await updateDoc(configRef, { prices: State.prices });
-            showToast('Preços atualizados em todos os aparelhos!');
-        }
-
-        // --- ADMIN MENU ---
-        function renderMenuAdmin() {
-            const container = document.getElementById('menu-management-container');
-            container.innerHTML = '';
-
-            const categories = [
-                { key: 'proteins', label: 'Proteínas' },
-                { key: 'carbs', label: 'Carboidratos' },
-                { key: 'sides', label: 'Acompanhamentos' }
-            ];
-
-            categories.forEach(cat => {
-                let itemsHtml = State.menu[cat.key].map(item => `
-                    <div class="flex justify-between items-center bg-gray-50 p-3 rounded-lg border border-gray-200">
-                        <span class="${!item.active ? 'text-gray-400 line-through' : 'font-medium flex-1'}">${item.name}</span>
-                        
-                        <div class="flex items-center gap-4">
-                            <!-- Toggle de Ativar/Desativar -->
-                            <label class="relative inline-flex items-center cursor-pointer" title="${item.active ? 'Desativar temporariamente' : 'Reativar'}">
-                                <input type="checkbox" class="sr-only peer" ${item.active ? 'checked' : ''} onchange="toggleMenuItemStatus('${cat.key}', '${item.id}')">
-                                <div class="w-11 h-6 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-green-500"></div>
-                            </label>
-                            
-                            <!-- Botão de Excluir Permanentemente -->
-                            <button onclick="deleteMenuItem('${cat.key}', '${item.id}')" class="text-gray-400 hover:text-red-500 p-1.5 rounded-lg hover:bg-red-50 transition-colors" title="Excluir Permanentemente">
-                                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
-                            </button>
-                        </div>
-                    </div>
-                `).join('');
-
-                container.innerHTML += `
-                    <div>
-                        <h4 class="font-bold text-gray-700 uppercase text-sm mb-2 border-b pb-1">${cat.label}</h4>
-                        <div class="space-y-2 mb-4">${itemsHtml || '<span class="text-sm text-gray-400 italic">Nenhum item cadastrado</span>'}</div>
-                    </div>
-                `;
-            });
-        }
-
-        async function toggleMenuItemStatus(category, itemId) {
-            if (!auth.currentUser) return;
-            const item = State.menu[category].find(i => i.id === itemId);
-            if (item) {
-                item.active = !item.active;
-                await updateDoc(configRef, { menu: State.menu });
-            }
-        }
-
-        async function deleteMenuItem(category, itemId) {
-            if (!auth.currentUser) return;
-            State.menu[category] = State.menu[category].filter(i => i.id !== itemId);
-            await updateDoc(configRef, { menu: State.menu });
-            showToast('Item excluído para todos os aparelhos!', 'success');
-        }
-
-        function addNewMenuItem() {
-            document.getElementById('new-item-name').value = '';
-            document.getElementById('add-item-modal').classList.remove('hidden');
-            document.getElementById('add-item-modal').classList.add('flex');
-        }
-
-        function closeAddItemModal() {
-            document.getElementById('add-item-modal').classList.add('hidden');
-            document.getElementById('add-item-modal').classList.remove('flex');
-        }
-
-        async function saveNewMenuItem() {
-            if (!auth.currentUser) return;
-
-            const catKey = document.getElementById('new-item-category').value;
-            const name = document.getElementById('new-item-name').value.trim();
-
-            if(!name) {
-                showToast('Por favor, digite o nome do item.', 'error');
-                return;
-            }
-
-            State.menu[catKey].push({
-                id: Date.now().toString(),
-                name: name,
-                active: true
-            });
-
-            await updateDoc(configRef, { menu: State.menu });
-            closeAddItemModal();
-            showToast('Novo item adicionado e sincronizado!');
-        }
-
-        // --- ADMIN HISTÓRICO ---
-        function renderHistoryAdmin() {
-            const container = document.getElementById('history-container');
-            container.innerHTML = '';
-            
-            const dates = Object.keys(State.history).sort((a,b) => new Date(b) - new Date(a)); // Descending
-
-            if (dates.length === 0) {
-                container.innerHTML = `<div class="text-gray-500 italic">Nenhum histórico de vendas.</div>`;
-                return;
-            }
-
-            dates.forEach(dateStr => {
-                const dayOrders = State.history[dateStr];
-                const dayTotal = dayOrders.reduce((sum, order) => sum + order.total_price, 0);
-                
-                // Build a simple summary
-                const ordersHtml = dayOrders.map(o => `
-                    <div class="flex justify-between items-center py-2 border-t border-gray-100 text-sm">
-                        <span class="text-gray-600">#${o.id} - ${o.customer} (${o.type})</span>
-                        <span class="font-bold text-gray-800">${formatCurrency(o.total_price)}</span>
-                    </div>
-                `).join('');
-
-                container.innerHTML += `
-                    <div class="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden mb-4">
-                        <div class="bg-gray-100 px-4 py-3 border-b border-gray-200 flex justify-between items-center cursor-pointer" onclick="this.nextElementSibling.classList.toggle('hidden')">
-                            <h4 class="font-bold text-gray-800">📅 ${formatDateBR(dateStr)}</h4>
-                            <div class="flex items-center gap-4">
-                                <span class="font-bold text-green-700 bg-green-100 px-2 py-1 rounded-md text-sm">Total: ${formatCurrency(dayTotal)}</span>
-                                <span class="text-xs text-gray-500 border px-2 py-1 rounded bg-white">Ver 🔽</span>
+                            <ul class="divide-y divide-gray-100 my-2 max-h-36 overflow-y-auto">${itensHtml}</ul>
+                            <div class="flex justify-between items-center text-xs font-semibold text-gray-500 mt-3 pt-2 border-t">
+                                <span>Total: R$ ${data.total.toFixed(2)}</span>
                             </div>
-                        </div>
-                        <div class="p-4 hidden bg-white">
-                            <div class="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-2 flex justify-between">
-                                <span>Pedido & Cliente</span>
-                                <span>Valor</span>
-                            </div>
-                            ${ordersHtml}
-                        </div>
-                    </div>
-                `;
-            });
-        }
-
-        // --- STREAMING_CHUNK: 9. APP INITIALIZATION & LISTENERS ---
-        
-        async function initializeCloud() {
-            try {
-                // 1. Autenticação Segura Anônima
-                try {
-                    await signInAnonymously(auth);
-                } catch (authError) {
-                    if (authError.code === 'auth/configuration-not-found') {
-                        throw new Error("Autenticação Anônima não está ativada no Firebase! Vá no painel do Firebase > Authentication > Sign-in method e ative a opção 'Anônimo'.");
-                    }
-                    throw authError;
-                }
-
-                // 2. Criar tabela de configuração se for a primeira vez
-                const configSnap = await getDoc(configRef);
-                if (!configSnap.exists()) {
-                    await setDoc(configRef, {
-                        menu: DEFAULT_MENU,
-                        prices: DEFAULT_PRICES,
-                        lastOrderId: 0
-                    });
-                }
-
-                // 3. Ouvintes de Sincronização em Tempo Real
-                // - Escutar Menu e Preços
-                onSnapshot(configRef, (docSnap) => {
-                    if (docSnap.exists()) {
-                        const data = docSnap.data();
-                        State.menu = data.menu || DEFAULT_MENU;
-                        State.prices = data.prices || DEFAULT_PRICES;
-                        State.lastOrderId = data.lastOrderId || 0;
-                        renderMenuAdmin();
-                        loadPricesAdmin();
-                        if (currentPlate.size) renderPlateBuilderUI(); 
-                    }
-                }, (error) => console.error("Erro na sincronização de configurações:", error));
-
-                // - Escutar Pedidos da Cozinha (Ativos)
-                onSnapshot(ordersRef, (snapshot) => {
-                    State.orders = snapshot.docs.map(doc => doc.data());
-                    State.orders.sort((a, b) => a.id - b.id); // Mantém a ordem da fila
-                    renderKitchenView();
-                    renderWaiterStatus();
-                }, (error) => console.error("Erro na sincronização de pedidos:", error));
-
-                // - Escutar Histórico e Fechamento de Caixa
-                onSnapshot(historyRef, (snapshot) => {
-                    const historyList = snapshot.docs.map(doc => doc.data());
-                    State.history = {};
-                    historyList.forEach(order => {
-                         const dateKey = order.completedAt.split('T')[0];
-                         if (!State.history[dateKey]) State.history[dateKey] = [];
-                         State.history[dateKey].push(order);
-                    });
-                    renderHistoryAdmin();
-                }, (error) => console.error("Erro na sincronização do histórico:", error));
-
-                // 4. Remover Tela de Loading Suavemente
-                setTimeout(() => {
-                    const loader = document.getElementById('cloud-loading');
-                    if(loader) {
-                        loader.style.opacity = '0';
-                        setTimeout(() => loader.remove(), 500);
-                    }
-                }, 1000);
-
-            } catch (error) {
-                console.error("Erro fatal ao conectar na Nuvem:", error);
-                
-                // Mostrar o erro de forma visual na tela para ajudar a resolver
-                const loader = document.getElementById('cloud-loading');
-                if (loader) {
-                    loader.innerHTML = `
-                        <div class="bg-white p-6 rounded-2xl max-w-sm text-center text-gray-800 m-4 shadow-2xl">
-                            <div class="text-red-500 text-5xl mb-4">⚠️</div>
-                            <h2 class="text-xl font-bold mb-2 text-red-600">Conexão Bloqueada</h2>
-                            <p class="text-sm text-gray-700 mb-4 font-medium">${error.message || "Verifique se o Firestore e a Autenticação estão configurados corretamente."}</p>
-                            <p class="text-xs text-gray-500 bg-gray-100 p-3 rounded-lg border border-gray-200">Acesse console.firebase.google.com para corrigir as configurações do seu projeto.</p>
+                            ${botoesAcao}
                         </div>
                     `;
-                    loader.classList.remove('bg-gray-900');
-                    loader.classList.add('bg-gray-900/90', 'backdrop-blur-sm');
-                } else {
-                    showToast(error.message, "error");
+
+                    if(data.status === 'pendente') pendentesEl.innerHTML += cardHtml;
+                    else if(data.status === 'preparo') preparoEl.innerHTML += cardHtml;
+                    else if(data.status === 'pronto') prontosEl.innerHTML += cardHtml;
+                });
+
+                document.getElementById('badge-pendentes').innerText = countPendentes;
+                document.getElementById('badge-preparo').innerText = countPreparo;
+                document.getElementById('badge-prontos').innerText = countProntos;
+            });
+        }
+
+        window.mudarStatus = async function(id, novoStatus) {
+            try {
+                await updateDoc(doc(db, "pedidos", id), { status: novoStatus });
+            } catch(e) {
+                console.error("Erro ao atualizar status:", e);
+            }
+        }
+
+        window.excluirPedido = async function(id) {
+            if(confirm("Tem certeza que deseja apagar este pedido?")) {
+                try {
+                    await deleteDoc(doc(db, "pedidos", id));
+                } catch(e) {
+                    console.error("Erro ao excluir pedido:", e);
                 }
             }
         }
 
-        document.addEventListener('DOMContentLoaded', () => {
-            switchView('lancamento');
-            switchAdminTab('historico');
+        window.mudarAba = function(aba) {
+            document.getElementById('view-pdv').classList.add('hidden');
+            document.getElementById('view-kds').classList.add('hidden');
+            document.getElementById('view-' + aba).classList.remove('hidden');
             
-            // Disparar sincronização com a Nuvem
-            initializeCloud();
-        });
+            document.querySelectorAll('.nav-btn').forEach(btn => btn.classList.remove('border-amber-600', 'text-amber-600'));
+            document.getElementById('nav-' + aba).classList.add('border-amber-600', 'text-amber-600');
+        }
+
+        window.onload = initAuth;
     </script>
+</head>
+<body class="bg-gray-100 font-sans antialiased">
+
+    <!-- Aviso de Erro de Conexão -->
+    <div id="erro-conexao" class="hidden bg-red-600 text-white text-center p-3 text-sm font-bold">
+        ⚠️ Conexão Bloqueada ou Erro no Firebase. Verifique suas regras do Firestore e Authentication Anônimo ativado.
+    </div>
+
+    <!-- Navegação Superior -->
+    <header class="bg-white shadow-sm border-b border-gray-200 sticky top-0 z-50">
+        <div class="max-w-7xl mx-auto px-4 py-3 flex justify-between items-center">
+            <h1 class="text-xl font-extrabold text-amber-600 flex items-center gap-2">
+                🍽️ Janta System <span class="text-xs bg-amber-100 text-amber-800 px-2 py-0.5 rounded-full">KDS & PDV</span>
+            </h1>
+            <nav class="flex space-x-6">
+                <button id="nav-pdv" onclick="mudarAba('pdv')" class="nav-btn font-semibold text-sm pb-1 border-b-2 border-amber-600 text-amber-600 transition">Novo Pedido (PDV)</button>
+                <button id="nav-kds" onclick="mudarAba('kds')" class="nav-btn font-semibold text-sm pb-1 border-b-2 border-transparent text-gray-500 hover:text-gray-800 transition">Visor Cozinha (KDS)</button>
+            </nav>
+        </div>
+    </header>
+
+    <main class="max-w-7xl mx-auto p-4">
+
+        <!-- TELA 1: PDV / LANÇAMENTO -->
+        <div id="view-pdv" class="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <!-- Cardápio / Itens -->
+            <div class="md:col-span-2 space-y-4">
+                <div class="bg-white p-4 rounded-xl shadow-sm border border-gray-200">
+                    <h2 class="text-lg font-bold text-gray-800 mb-3">Cardápio & Itens</h2>
+                    
+                    <div class="grid grid-cols-2 sm:grid-cols-3 gap-3">
+                        <!-- Exemplo de item 1 -->
+                        <div onclick="adicionarAoCarrinho('Janta Completa', 25.00, 'G')" class="bg-amber-50 hover:bg-amber-100 border border-amber-200 p-3 rounded-lg cursor-pointer transition text-center shadow-xs">
+                            <div class="font-bold text-gray-800">Janta Completa</div>
+                            <div class="text-xs text-amber-700 mt-1">G - R$ 25,00</div>
+                        </div>
+                        <!-- Exemplo de item 2 -->
+                        <div onclick="adicionarAoCarrinho('Janta Completa', 20.00, 'P')" class="bg-amber-50 hover:bg-amber-100 border border-amber-200 p-3 rounded-lg cursor-pointer transition text-center shadow-xs">
+                            <div class="font-bold text-gray-800">Janta Completa</div>
+                            <div class="text-xs text-amber-700 mt-1">P - R$ 20,00</div>
+                        </div>
+                        <!-- Exemplo de item 3 -->
+                        <div onclick="adicionarAoCarrinho('Sopa Caseira', 15.00, 'Sopa')" class="bg-amber-50 hover:bg-amber-100 border border-amber-200 p-3 rounded-lg cursor-pointer transition text-center shadow-xs">
+                            <div class="font-bold text-gray-800">Sopa Caseira</div>
+                            <div class="text-xs text-amber-700 mt-1">Un - R$ 15,00</div>
+                        </div>
+                        <!-- Exemplo de item 4 -->
+                        <div onclick="adicionarAoCarrinho('Caldo Verde', 16.00, 'Sopa')" class="bg-amber-50 hover:bg-amber-100 border border-amber-200 p-3 rounded-lg cursor-pointer transition text-center shadow-xs">
+                            <div class="font-bold text-gray-800">Caldo Verde</div>
+                            <div class="text-xs text-amber-700 mt-1">Un - R$ 16,00</div>
+                        </div>
+                        <!-- Exemplo de item 5 -->
+                        <div onclick="adicionarAoCarrinho('Refrigerante Lata', 6.00, 'Lata')" class="bg-amber-50 hover:bg-amber-100 border border-amber-200 p-3 rounded-lg cursor-pointer transition text-center shadow-xs">
+                            <div class="font-bold text-gray-800">Refrigerante Lata</div>
+                            <div class="text-xs text-amber-700 mt-1">350ml - R$ 6,00</div>
+                        </div>
+                        <!-- Exemplo de item 6 -->
+                        <div onclick="adicionarAoCarrinho('Suco Natural', 7.00, 'Copo')" class="bg-amber-50 hover:bg-amber-100 border border-amber-200 p-3 rounded-lg cursor-pointer transition text-center shadow-xs">
+                            <div class="font-bold text-gray-800">Suco Natural</div>
+                            <div class="text-xs text-amber-700 mt-1">500ml - R$ 7,00</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Carrinho / Fechamento -->
+            <div class="bg-white p-4 rounded-xl shadow-sm border border-gray-200 flex flex-col justify-between">
+                <div>
+                    <h2 class="text-lg font-bold text-gray-800 mb-3">Carrinho Atual</h2>
+                    
+                    <!-- Tipo de Pedido -->
+                    <div class="grid grid-cols-3 gap-1 mb-3 bg-gray-100 p-1 rounded-lg">
+                        <button id="btn-Mesa" onclick="mudarTipo('Mesa')" class="btn-tipo bg-amber-600 text-white text-xs py-1.5 rounded font-semibold transition">Mesa</button>
+                        <button id="btn-Delivery" onclick="mudarTipo('Delivery')" class="btn-tipo bg-gray-200 text-gray-700 text-xs py-1.5 rounded font-semibold transition">Delivery</button>
+                        <button id="btn-Balcão" onclick="mudarTipo('Balcão')" class="btn-tipo bg-gray-200 text-gray-700 text-xs py-1.5 rounded font-semibold transition">Balcão</button>
+                    </div>
+
+                    <div class="mb-3">
+                        <label id="label-identificacao" class="block text-xs font-semibold text-gray-600 mb-1">Número da Mesa:</label>
+                        <input type="text" id="input-identificacao" placeholder="Ex: Mesa 04" class="w-full border border-gray-300 rounded px-3 py-2 text-sm focus:outline-none focus:border-amber-500">
+                    </div>
+
+                    <div id="carrinho-lista" class="max-h-64 overflow-y-auto mb-3 divide-y divide-gray-50">
+                        <p class="text-gray-400 text-center py-4">Nenhum item adicionado.</p>
+                    </div>
+                </div>
+
+                <div class="border-t border-gray-200 pt-3">
+                    <div class="flex justify-between items-center mb-3 font-bold text-lg text-gray-800">
+                        <span>Total:</span>
+                        <span id="carrinho-total" class="text-amber-600">R$ 0,00</span>
+                    </div>
+                    <button onclick="enviarPedido()" class="w-full bg-amber-600 hover:bg-amber-700 text-white py-2.5 rounded-lg font-bold shadow-md transition">Enviar Pedido</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- TELA 2: KDS / VISOR DA COZINHA -->
+        <div id="view-kds" class="hidden grid grid-cols-1 md:grid-cols-3 gap-6">
+            <!-- Pendentes -->
+            <div class="bg-gray-200 p-3 rounded-xl border border-gray-300">
+                <div class="flex justify-between items-center mb-3 px-1">
+                    <h3 class="font-bold text-gray-700 uppercase text-sm">Pendentes</h3>
+                    <span id="badge-pendentes" class="bg-amber-500 text-white text-xs px-2 py-0.5 rounded-full font-bold">0</span>
+                </div>
+                <div id="col-pendentes" class="space-y-3"></div>
+            </div>
+
+            <!-- Em Preparo -->
+            <div class="bg-gray-200 p-3 rounded-xl border border-gray-300">
+                <div class="flex justify-between items-center mb-3 px-1">
+                    <h3 class="font-bold text-gray-700 uppercase text-sm">Em Preparo</h3>
+                    <span id="badge-preparo" class="bg-blue-600 text-white text-xs px-2 py-0.5 rounded-full font-bold">0</span>
+                </div>
+                <div id="col-preparo" class="space-y-3"></div>
+            </div>
+
+            <!-- Prontos -->
+            <div class="bg-gray-200 p-3 rounded-xl border border-gray-300">
+                <div class="flex justify-between items-center mb-3 px-1">
+                    <h3 class="font-bold text-gray-700 uppercase text-sm">Prontos / Concluídos</h3>
+                    <span id="badge-prontos" class="bg-green-600 text-white text-xs px-2 py-0.5 rounded-full font-bold">0</span>
+                </div>
+                <div id="col-prontos" class="space-y-3"></div>
+            </div>
+        </div>
+
+    </main>
+
 </body>
 </html>
