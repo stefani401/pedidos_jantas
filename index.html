@@ -453,7 +453,7 @@
                 const playBeep = (freq, start, duration) => {
                     const osc = audioCtx.createOscillator();
                     const gain = audioCtx.createGain();
-                    osc.type = 'sawtooth'; // Onda dente de serra para um som mais metálico e cortante
+                    osc.type = 'sawtooth';
                     osc.frequency.value = freq;
                     gain.gain.setValueAtTime(0.7, audioCtx.currentTime + start);
                     gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + start + duration);
@@ -462,7 +462,6 @@
                     osc.start(audioCtx.currentTime + start);
                     osc.stop(audioCtx.currentTime + start + duration);
                 };
-                // Batidas duplas fortes em sequência rápida (estilo campainha alta)
                 playBeep(1200, 0, 0.2);
                 playBeep(1200, 0.25, 0.2);
                 playBeep(1500, 0.5, 0.35);
@@ -566,7 +565,7 @@
 
         function renderPastelFlavorsUI() {
             const container = document.getElementById('pastel-flavors-list');
-            const activeFlavors = State.pastelFlavors.filter(f => f.active);
+            const activeFlavors = (State.pastelFlavors || []).filter(f => f.active);
             if(activeFlavors.length === 0) {
                 container.innerHTML = `<p class="text-sm text-gray-400 italic">Nenhum sabor de pastel cadastrado ou ativo.</p>`;
                 return;
@@ -688,7 +687,7 @@
             const container = document.getElementById('kitchen-orders-container');
             if(!container) return;
             container.innerHTML = '';
-            if (State.orders.length === 0) {
+            if (!State.orders || State.orders.length === 0) {
                 container.innerHTML = `<div class="col-span-full flex flex-col items-center justify-center h-64 text-gray-400"><p class="text-xl font-medium">Cozinha limpa!</p></div>`;
                 return;
             }
@@ -698,15 +697,15 @@
                 const borderColor = isPreparing ? 'border-t-blue-500' : 'border-t-yellow-500';
                 const typeColor = order.type === 'Local' ? 'bg-blue-600' : order.type === 'Viagem' ? 'bg-purple-600' : order.type === 'Retirada' ? 'bg-orange-500' : 'bg-red-500';
 
-                let itemsHtml = order.items.map((item, i) => {
-                    if(item.typeItem === 'plate') {
+                let itemsHtml = (order.items || []).map((item, i) => {
+                    if(item.typeItem === 'plate' || !item.typeItem) {
                         return `
                             <div class="mb-3 bg-gray-50 p-3 border-2 border-gray-200 rounded-xl">
-                                <div class="flex justify-between items-center border-b pb-1 mb-1"><span class="font-bold text-gray-800">Prato ${i+1}</span><span class="bg-gray-800 text-white px-2 py-0.5 rounded text-xs font-bold">${item.size}</span></div>
+                                <div class="flex justify-between items-center border-b pb-1 mb-1"><span class="font-bold text-gray-800">Prato ${i+1}</span><span class="bg-gray-800 text-white px-2 py-0.5 rounded text-xs font-bold">${item.size || 'P'}</span></div>
                                 <ul class="text-sm text-gray-700 space-y-0.5">
-                                    ${item.proteins.length ? `<li><b>Prot:</b> ${item.proteins.join(', ')}</li>` : ''}
-                                    ${item.carbs.length ? `<li><b>Carbo:</b> ${item.carbs.join(', ')}</li>` : ''}
-                                    ${item.sides.length ? `<li><b>Acomp:</b> ${item.sides.join(', ')}</li>` : ''}
+                                    ${item.proteins && item.proteins.length ? `<li><b>Prot:</b> ${item.proteins.join(', ')}</li>` : ''}
+                                    ${item.carbs && item.carbs.length ? `<li><b>Carbo:</b> ${item.carbs.join(', ')}</li>` : ''}
+                                    ${item.sides && item.sides.length ? `<li><b>Acomp:</b> ${item.sides.join(', ')}</li>` : ''}
                                 </ul>
                                 ${item.obs ? `<div class="mt-1 text-xs text-red-600 font-bold">OBS: ${item.obs}</div>` : ''}
                             </div>
@@ -751,9 +750,9 @@
             const order = State.orders.find(o => o.id === orderId);
             if (!order) return;
             const modalContent = document.getElementById('zoom-modal-content');
-            let itemsHtml = order.items.map((item, i) => {
-                if(item.typeItem === 'plate') {
-                    return `<div class="mb-4 bg-gray-50 p-4 border-2 rounded-2xl"><div class="font-bold text-2xl uppercase mb-2">Prato ${i+1} (${item.size})</div><ul class="text-xl space-y-1"><li><b>Prot:</b> ${item.proteins.join(', ')}</li><li><b>Carbo:</b> ${item.carbs.join(', ')}</li><li><b>Acomp:</b> ${item.sides.join(', ')}</li></ul>${item.obs ? `<div class="mt-2 text-red-600 font-bold">Obs: ${item.obs}</div>` : ''}</div>`;
+            let itemsHtml = (order.items || []).map((item, i) => {
+                if(item.typeItem === 'plate' || !item.typeItem) {
+                    return `<div class="mb-4 bg-gray-50 p-4 border-2 rounded-2xl"><div class="font-bold text-2xl uppercase mb-2">Prato ${i+1} (${item.size || 'P'})</div><ul class="text-xl space-y-1"><li><b>Prot:</b> ${(item.proteins || []).join(', ')}</li><li><b>Carbo:</b> ${(item.carbs || []).join(', ')}</li><li><b>Acomp:</b> ${(item.sides || []).join(', ')}</li></ul>${item.obs ? `<div class="mt-2 text-red-600 font-bold">Obs: ${item.obs}</div>` : ''}</div>`;
                 } else {
                     return `<div class="mb-4 bg-amber-50 p-4 border-2 border-amber-200 rounded-2xl"><div class="font-bold text-2xl uppercase mb-1 text-amber-900">Pastel ${i+1}</div><div class="text-2xl font-black text-amber-950">Sabor: ${item.flavor}</div>${item.obs ? `<div class="mt-2 text-red-600 font-bold">Obs: ${item.obs}</div>` : ''}</div>`;
                 }
@@ -768,9 +767,9 @@
             const container = document.getElementById('waiter-status-container');
             if(!container) return;
             container.innerHTML = '';
-            if (State.orders.length === 0) { container.innerHTML = `<div class="col-span-full text-gray-500 italic">Nenhum pedido ativo.</div>`; return; }
+            if (!State.orders || State.orders.length === 0) { container.innerHTML = `<div class="col-span-full text-gray-500 italic">Nenhum pedido ativo.</div>`; return; }
             [...State.orders].reverse().forEach(order => {
-                container.innerHTML += `<div class="bg-white rounded-xl shadow-sm border p-4 flex justify-between items-center"><div><div class="font-bold text-lg">#${order.id} - ${order.customer}</div><div class="text-sm text-gray-600">${order.items.length} item(s) • ${formatCurrency(order.total_price)}</div></div><div class="text-sm font-bold px-3 py-1.5 rounded-lg ${order.status === 'preparing' ? 'bg-blue-50 text-blue-600' : 'bg-yellow-50 text-yellow-600'}">${order.status === 'preparing' ? 'Preparando' : 'Pendente'}</div></div>`;
+                container.innerHTML += `<div class="bg-white rounded-xl shadow-sm border p-4 flex justify-between items-center"><div><div class="font-bold text-lg">#${order.id} - ${order.customer}</div><div class="text-sm text-gray-600">${(order.items || []).length} item(s) • ${formatCurrency(order.total_price)}</div></div><div class="text-sm font-bold px-3 py-1.5 rounded-lg ${order.status === 'preparing' ? 'bg-blue-50 text-blue-600' : 'bg-yellow-50 text-yellow-600'}">${order.status === 'preparing' ? 'Preparando' : 'Pendente'}</div></div>`;
             });
         }
 
@@ -799,7 +798,7 @@
             container.innerHTML = '';
             const cats = [{ key: 'proteins', label: 'Proteínas' }, { key: 'carbs', label: 'Carboidratos' }, { key: 'sides', label: 'Acompanhamentos' }];
             cats.forEach(cat => {
-                let itemsHtml = State.menu[cat.key].map(item => `
+                let itemsHtml = (State.menu[cat.key] || []).map(item => `
                     <div class="flex justify-between items-center bg-gray-50 p-3 rounded-lg border">
                         <span class="${!item.active ? 'text-gray-400 line-through' : 'font-medium'}">${item.name}</span>
                         <div class="flex items-center gap-3">
@@ -928,7 +927,7 @@
                     const list = snapshot.docs.map(doc => doc.data());
                     State.history = {};
                     list.forEach(o => {
-                        const d = o.completedAt.split('T')[0];
+                        const d = o.completedAt ? o.completedAt.split('T')[0] : new Date().toISOString().split('T')[0];
                         if (!State.history[d]) State.history[d] = [];
                         State.history[d].push(o);
                     });
