@@ -211,16 +211,6 @@
         </div>
     </div>
 
-    <!-- TELA DE LOADING COM BOTÃO DE FORÇAR ENTRADA -->
-    <div id="cloud-loading" class="fixed inset-0 bg-gray-900 z-[200] flex flex-col justify-center items-center text-white p-6 text-center">
-        <div class="animate-spin rounded-full h-16 w-16 border-t-4 border-red-500 mb-4"></div>
-        <h2 class="text-xl font-bold mb-2">Conectando à Nuvem...</h2>
-        <p class="text-xs text-gray-400 mb-6">Se demorar mais de 2 segundos, toque no botão abaixo para entrar direto.</p>
-        <button onclick="forceOpenSystem()" class="bg-red-500 hover:bg-red-600 text-white font-bold py-3 px-6 rounded-xl shadow-lg transition-transform active:scale-95">
-            Entrar no Sistema Agora
-        </button>
-    </div>
-
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
         import { getAuth, signInAnonymously } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
@@ -291,7 +281,6 @@
         window.addNewPastelFlavor = addNewPastelFlavor;
         window.closeAddPastelModal = closeAddPastelModal;
         window.saveNewPastelFlavor = saveNewPastelFlavor;
-        window.forceOpenSystem = forceOpenSystem;
 
         function playAlertSound() {
             try {
@@ -321,11 +310,6 @@
 
         function formatCurrency(val) { return val.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' }); }
         function formatDateBR(d) { const [y,m,day]=d.split('-'); return `${day}/${m}/${y}`; }
-
-        function forceOpenSystem() {
-            const l = document.getElementById('cloud-loading');
-            if(l) l.remove();
-        }
 
         function switchView(viewName) {
             document.querySelectorAll('.view-section').forEach(v => { v.classList.remove('block'); v.classList.add('hidden'); });
@@ -612,14 +596,16 @@
                     });
                     renderHistoryAdmin();
                 });
-
-                forceOpenSystem();
             } catch (e) {
                 console.error(e);
             }
         }
 
-        document.addEventListener('DOMContentLoaded', () => { switchView('lancamento'); switchAdminTab('historico'); initializeCloud(); });
+        document.addEventListener('DOMContentLoaded', () => { 
+            switchView('lancamento'); 
+            switchAdminTab('historico'); 
+            initializeCloud(); 
+        });
     </script>
 </body>
 </html>
