@@ -336,8 +336,8 @@
         import { getAuth, signInAnonymously } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
         import { getFirestore, doc, getDoc, setDoc, updateDoc, deleteDoc, onSnapshot, collection } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
-        // APP ID Padronizado e Fixo
-        const appId = 'kds-pdv-app';
+        // ID unificado e blindado para ambos os aparelhos se acharem perfeitamente
+        const appId = 'kds-pdv-app-final';
         const firebaseConfig = {
             apiKey: "AIzaSyBZz3WuV9RHjacAjfHX8yhrQa70B5Dv3VI",
             authDomain: "pedidos-janta.firebaseapp.com",
@@ -593,7 +593,7 @@
                     const details = [(item.proteins||[]).join(', '), (item.carbs||[]).join(', '), (item.sides||[]).join(', ')].filter(Boolean).join(' | ');
                     container.innerHTML += `
                         <div class="bg-gray-50 rounded-xl p-3 border border-gray-200 relative pr-10">
-                            <div class="flex justify-between items-start mb-1"><span class="font-bold text-gray-800">Prato ${index + 1} <span class="bg-gray-200 text-gray-700 px-1.5 rounded text-xs">${item.size}</span></span><span class="font-semibold">${formatCurrency(item.price)}</span></div>
+                            <div class="flex justify-between items-start mb-1"><span class="font-bold text-gray-800">Prato ${index + 1} <span class="bg-gray-200 text-gray-700 px-1.5 rounded text-xs">${item.size}</span></span><span class="semibold">${formatCurrency(item.price)}</span></div>
                             <p class="text-xs text-gray-600 mb-1">${details || 'Nenhum item'}</p>
                             ${item.obs ? `<p class="text-xs text-red-600 font-medium">Obs: ${item.obs}</p>` : ''}
                             <button onclick="removeItemFromCart(${item.cartId})" class="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-red-500 p-2"><svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg></button>
