@@ -336,7 +336,8 @@
         import { getAuth, signInAnonymously } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
         import { getFirestore, doc, getDoc, setDoc, updateDoc, deleteDoc, onSnapshot, collection } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
-        const appId = typeof __app_id !== 'undefined' ? __app_id : 'kds-pdv-app';
+        // APP ID Padronizado e Fixo
+        const appId = 'kds-pdv-app';
         const firebaseConfig = {
             apiKey: "AIzaSyBZz3WuV9RHjacAjfHX8yhrQa70B5Dv3VI",
             authDomain: "pedidos-janta.firebaseapp.com",
