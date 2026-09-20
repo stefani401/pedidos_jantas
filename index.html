@@ -1,8 +1,15 @@
+Isso confirma exatamente o que eu te disse. No Safari normal funciona perfeitamente porque o navegador do iPhone gerencia a tela sozinho, mas quando você adiciona à tela de início, o modo de tela cheia bloqueia o foco automático do teclado por causa de um conflito de toque.
+
+Para resolver isso de vez e **permitir que você use direto da tela de início abrindo o teclado sem estresse**, precisamos apenas remover o bloqueio de comportamento de toque da página inteira e dar total liberdade para o input.
+
+Aqui está o código final com a correção que faltava para liberar o toque no modo tela cheia do celular. Copie tudo, cole no GitHub e teste adicionando à tela de início:
+
+```html
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <title>KDS & PDV - Sistema Completo</title>
     
     <meta name="theme-color" content="#ef4444">
@@ -19,12 +26,19 @@
             font-family: 'Inter', sans-serif;
             background-color: #f3f4f6;
             -webkit-tap-highlight-color: transparent;
+            -webkit-user-select: none;
+            user-select: none;
         }
         
+        /* Permite digitação normal nos campos */
+        input, textarea, select {
+            -webkit-user-select: text;
+            user-select: text;
+        }
+
         ::-webkit-scrollbar { width: 6px; height: 6px; }
         ::-webkit-scrollbar-track { background: transparent; }
         ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
-        ::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
 
         @keyframes slideInRight { from { transform: translateX(100%); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
         @keyframes fadeOut { from { opacity: 1; } to { opacity: 0; } }
@@ -64,11 +78,11 @@
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
                     <div>
                         <label class="block text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1">Mesa / Cliente</label>
-                        <input type="text" id="order-customer" placeholder="Ex: Mesa 04 ou João" class="w-full px-4 py-3 rounded-xl border border-gray-300 focus:ring-2 focus:ring-red-500 focus:border-red-500 bg-gray-50 outline-none">
+                        <input type="text" id="order-customer" placeholder="Ex: Mesa 04 ou João" class="w-full px-4 py-3 rounded-xl border border-gray-300 focus:ring-2 focus:ring-red-500 focus:border-red-500 bg-gray-50 outline-none text-base">
                     </div>
                     <div>
                         <label class="block text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1">Tipo de Pedido</label>
-                        <select id="order-type" class="w-full px-4 py-3 rounded-xl border border-gray-300 focus:ring-2 focus:ring-red-500 focus:border-red-500 bg-gray-50 outline-none appearance-none">
+                        <select id="order-type" class="w-full px-4 py-3 rounded-xl border border-gray-300 focus:ring-2 focus:ring-red-500 focus:border-red-500 bg-gray-50 outline-none appearance-none text-base">
                             <option value="Local">🍽️ Consumir no Local</option>
                             <option value="Viagem">🥡 Para Viagem</option>
                             <option value="Retirada">🚶 Retirada</option>
@@ -103,7 +117,7 @@
 
             <div class="bg-white rounded-2xl shadow-sm border border-gray-200 p-5 mb-4">
                  <label class="block text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1">Observação Geral da Comanda (Opcional)</label>
-                 <textarea id="order-obs" rows="2" placeholder="Ex: Cliente tem pressa, embalar bem..." class="w-full px-4 py-2 rounded-xl border border-gray-300 focus:ring-2 focus:ring-red-500 focus:border-red-500 bg-gray-50 outline-none resize-y text-sm"></textarea>
+                 <textarea id="order-obs" rows="2" placeholder="Ex: Cliente tem pressa, embalar bem..." class="w-full px-4 py-2 rounded-xl border border-gray-300 focus:ring-2 focus:ring-red-500 focus:border-red-500 bg-gray-50 outline-none resize-y text-base"></textarea>
             </div>
 
             <button onclick="sendOrder()" class="w-full py-4 bg-red-500 hover:bg-red-600 text-white rounded-xl font-bold text-lg transition-transform active:scale-[0.98] shadow-md flex justify-center items-center gap-2">
@@ -166,19 +180,19 @@
                 <div class="bg-white rounded-2xl shadow-sm border border-gray-200 p-5 space-y-4">
                     <div>
                         <label class="block text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1">Valor Tamanho P (R$)</label>
-                        <input type="number" step="0.01" id="price-p" class="w-full px-4 py-3 rounded-xl border border-gray-300 focus:ring-2 focus:ring-red-500 bg-gray-50 outline-none">
+                        <input type="number" step="0.01" id="price-p" class="w-full px-4 py-3 rounded-xl border border-gray-300 focus:ring-2 focus:ring-red-500 bg-gray-50 outline-none text-base">
                     </div>
                     <div>
                         <label class="block text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1">Valor Tamanho G (R$)</label>
-                        <input type="number" step="0.01" id="price-g" class="w-full px-4 py-3 rounded-xl border border-gray-300 focus:ring-2 focus:ring-red-500 bg-gray-50 outline-none">
+                        <input type="number" step="0.01" id="price-g" class="w-full px-4 py-3 rounded-xl border border-gray-300 focus:ring-2 focus:ring-red-500 bg-gray-50 outline-none text-base">
                     </div>
                     <div>
                         <label class="block text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1">Valor Sopa (R$)</label>
-                        <input type="number" step="0.01" id="price-sopa" class="w-full px-4 py-3 rounded-xl border border-gray-300 focus:ring-2 focus:ring-red-500 bg-gray-50 outline-none">
+                        <input type="number" step="0.01" id="price-sopa" class="w-full px-4 py-3 rounded-xl border border-gray-300 focus:ring-2 focus:ring-red-500 bg-gray-50 outline-none text-base">
                     </div>
                     <div>
                         <label class="block text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1">Valor Pastel (R$)</label>
-                        <input type="number" step="0.01" id="price-pastel" class="w-full px-4 py-3 rounded-xl border border-gray-300 focus:ring-2 focus:ring-red-500 bg-gray-50 outline-none">
+                        <input type="number" step="0.01" id="price-pastel" class="w-full px-4 py-3 rounded-xl border border-gray-300 focus:ring-2 focus:ring-red-500 bg-gray-50 outline-none text-base">
                     </div>
                     <button onclick="savePrices()" class="w-full py-4 bg-green-500 hover:bg-green-600 text-white font-bold rounded-xl mt-4 transition-transform active:scale-95">
                         Salvar Preços
@@ -236,7 +250,7 @@
                 </div>
                 <div>
                     <h4 class="font-bold text-sm text-gray-500 uppercase tracking-wider mb-2">5. Observação</h4>
-                    <input type="text" id="builder-obs" placeholder="Alguma restrição?" class="w-full px-4 py-3 border rounded-xl focus:ring-2 focus:ring-red-500 outline-none bg-gray-50">
+                    <input type="text" id="builder-obs" placeholder="Alguma restrição?" class="w-full px-4 py-3 border rounded-xl focus:ring-2 focus:ring-red-500 outline-none bg-gray-50 text-base">
                 </div>
             </div>
             <div class="p-4 border-t bg-white sticky bottom-0 md:rounded-b-2xl">
@@ -264,7 +278,7 @@
                 </div>
                 <div>
                     <h4 class="font-bold text-sm text-gray-500 uppercase tracking-wider mb-2">Observação (Opcional)</h4>
-                    <input type="text" id="pastel-obs" placeholder="Ex: Bem passado" class="w-full px-4 py-3 border rounded-xl focus:ring-2 focus:ring-amber-500 outline-none bg-gray-50">
+                    <input type="text" id="pastel-obs" placeholder="Ex: Bem passado" class="w-full px-4 py-3 border rounded-xl focus:ring-2 focus:ring-amber-500 outline-none bg-gray-50 text-base">
                 </div>
             </div>
             <div class="p-4 border-t bg-white sticky bottom-0 md:rounded-b-2xl flex justify-between items-center">
@@ -282,7 +296,7 @@
             <h3 class="font-bold text-lg mb-4 text-gray-800">Adicionar Novo Item</h3>
             <div class="mb-4">
                 <label class="block text-xs font-semibold text-gray-500 uppercase mb-1">Categoria</label>
-                <select id="new-item-category" class="w-full px-4 py-3 rounded-xl border border-gray-300 focus:ring-2 focus:ring-red-500 outline-none bg-gray-50">
+                <select id="new-item-category" class="w-full px-4 py-3 rounded-xl border border-gray-300 focus:ring-2 focus:ring-red-500 outline-none bg-gray-50 text-base">
                     <option value="proteins">Proteína</option>
                     <option value="carbs">Carboidrato</option>
                     <option value="sides">Acompanhamento</option>
@@ -290,7 +304,7 @@
             </div>
             <div class="mb-6">
                 <label class="block text-xs font-semibold text-gray-500 uppercase mb-1">Nome do Item</label>
-                <input type="text" id="new-item-name" placeholder="Ex: Feijão Tropeiro" class="w-full px-4 py-3 rounded-xl border border-gray-300 focus:ring-2 focus:ring-red-500 outline-none bg-gray-50">
+                <input type="text" id="new-item-name" placeholder="Ex: Feijão Tropeiro" class="w-full px-4 py-3 rounded-xl border border-gray-300 focus:ring-2 focus:ring-red-500 outline-none bg-gray-50 text-base">
             </div>
             <div class="flex gap-3">
                 <button onclick="closeAddItemModal()" class="flex-1 py-3 bg-gray-100 text-gray-700 rounded-xl font-bold hover:bg-gray-200">Cancelar</button>
@@ -305,7 +319,7 @@
             <h3 class="font-bold text-lg mb-4 text-gray-800">Novo Sabor de Pastel</h3>
             <div class="mb-6">
                 <label class="block text-xs font-semibold text-gray-500 uppercase mb-1">Nome do Sabor</label>
-                <input type="text" id="new-pastel-name" placeholder="Ex: Frango com Catupiry" class="w-full px-4 py-3 rounded-xl border border-gray-300 focus:ring-2 focus:ring-amber-500 outline-none bg-gray-50">
+                <input type="text" id="new-pastel-name" placeholder="Ex: Frango com Catupiry" class="w-full px-4 py-3 rounded-xl border border-gray-300 focus:ring-2 focus:ring-amber-500 outline-none bg-gray-50 text-base">
             </div>
             <div class="flex gap-3">
                 <button onclick="closeAddPastelModal()" class="flex-1 py-3 bg-gray-100 text-gray-700 rounded-xl font-bold hover:bg-gray-200">Cancelar</button>
@@ -427,17 +441,17 @@
         window.closeAddPastelModal = closeAddPastelModal;
         window.saveNewPastelFlavor = saveNewPastelFlavor;
 
-        // --- GATILHO ESPECIAL PARA FORÇAR O TECLADO NO CELULAR (APP / SAFARI) ---
+        // --- FORÇAR FOCO E ABERTURA DO TECLADO EM PWA (TELA DE INÍCIO) ---
         document.addEventListener('DOMContentLoaded', () => {
-            const customerInput = document.getElementById('order-customer');
-            if (customerInput) {
-                // Força o foco e abre o teclado virtual imediatamente ao tocar em qualquer lugar do campo de input
-                customerInput.addEventListener('touchstart', (e) => {
-                    e.preventDefault();
-                    customerInput.focus();
-                    customerInput.click();
-                }, { passive: false });
-            }
+            const inputs = document.querySelectorAll('input[type="text"], textarea');
+            inputs.forEach(input => {
+                input.addEventListener('touchend', (e) => {
+                    e.stopPropagation();
+                    setTimeout(() => {
+                        input.focus();
+                    }, 50);
+                });
+            });
         });
 
         function playAlertSound() {
@@ -840,7 +854,7 @@
 
         async function togglePastelStatus(id) {
             const item = State.pastelFlavors.find(i => i.id === id);
-            if(id) { item.active = !item.active; await updateDoc(configRef, { pastelFlavors: State.pastelFlavors }); }
+            if(item) { item.active = !item.active; await updateDoc(configRef, { pastelFlavors: State.pastelFlavors }); }
         }
         async function deletePastelFlavor(id) {
             State.pastelFlavors = State.pastelFlavors.filter(i => i.id !== id);
@@ -935,3 +949,5 @@
     </script>
 </body>
 </html>
+
+```
