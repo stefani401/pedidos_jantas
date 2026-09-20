@@ -399,6 +399,7 @@
         };
 
         let currentPlate = { size: null, proteins: [], carbs: [], sides: [], obs: '' };
+        let previousOrdersCount = null; // Controla se houve novos pedidos para tocar o som
 
         const configRef = doc(db, 'artifacts', appId, 'public', 'data', 'settings', 'main');
         const ordersRef = collection(db, 'artifacts', appId, 'public', 'data', 'active_orders');
@@ -425,6 +426,32 @@
         window.addNewMenuItem = addNewMenuItem;
         window.closeAddItemModal = closeAddItemModal;
         window.saveNewMenuItem = saveNewMenuItem;
+
+        // --- FUNÇÃO DE ALARME SONORO PARA A COZINHA ---
+        function playAlertSound() {
+            try {
+                const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+                
+                // Toca 2 beeps curtos de alerta
+                const playBeep = (time, freq) => {
+                    const osc = audioCtx.createOscillator();
+                    const gain = audioCtx.createGain();
+                    osc.type = 'sine';
+                    osc.frequency.value = freq;
+                    gain.gain.setValueAtTime(0.3, audioCtx.currentTime + time);
+                    gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + time + 0.2);
+                    osc.connect(gain);
+                    gain.connect(audioCtx.destination);
+                    osc.start(audioCtx.currentTime + time);
+                    osc.stop(audioCtx.currentTime + time + 0.2);
+                };
+
+                playBeep(0, 587.33); // Dó agudo (D5)
+                playBeep(0.25, 880); // Lá agudo (A5)
+            } catch(e) {
+                console.log("Áudio bloqueado pelo navegador até haver interação.");
+            }
+        }
 
         function showToast(message, type = 'success') {
             const container = document.getElementById('toast-container');
@@ -692,7 +719,6 @@
             }
         }
 
-        // --- FUNÇÃO PARA EXCLUIR PEDIDO ATIVO (COZINHA) ---
         async function deleteActiveOrder(orderId) {
             if (!auth.currentUser) return;
             if (confirm(`Tem certeza que deseja apagar o pedido #${orderId}?`)) {
@@ -705,7 +731,6 @@
             }
         }
 
-        // --- FUNÇÃO PARA EXCLUIR PEDIDO DO HISTÓRICO (CAIXA) ---
         async function deleteHistoryOrder(orderId) {
             if (!auth.currentUser) return;
             if (confirm(`Tem certeza que deseja remover este pedido do histórico e do caixa?`)) {
@@ -1048,7 +1073,6 @@
             showToast('Novo item adicionado e sincronizado!');
         }
 
-        // --- RENDERIZAR HISTÓRICO COM BOTÃO DE EXCLUIR (LIXEIRA) ---
         function renderHistoryAdmin() {
             const container = document.getElementById('history-container');
             container.innerHTML = '';
@@ -1129,9 +1153,18 @@
                     }
                 });
 
+                // Ouvinte de Pedidos Ativos com Alerta Sonoro Automático
                 onSnapshot(ordersRef, (snapshot) => {
-                    State.orders = snapshot.docs.map(doc => doc.data());
-                    State.orders.sort((a, b) => a.id - b.id);
+                    const newOrdersList = snapshot.docs.map(doc => doc.data());
+                    newOrdersList.sort((a, b) => a.id - b.id);
+
+                    // Se já carregou antes e a quantidade de pedidos aumentou, toca o alarme na cozinha!
+                    if (previousOrdersCount !== null && newOrdersList.length > previousOrdersCount) {
+                        playAlertSound();
+                    }
+                    previousOrdersCount = newOrdersList.length;
+
+                    State.orders = newOrdersList;
                     renderKitchenView();
                     renderWaiterStatus();
                 });
