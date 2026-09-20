@@ -399,7 +399,7 @@
         };
 
         let currentPlate = { size: null, proteins: [], carbs: [], sides: [], obs: '' };
-        let previousOrdersCount = null; // Controla se houve novos pedidos para tocar o som
+        let previousOrdersCount = null;
 
         const configRef = doc(db, 'artifacts', appId, 'public', 'data', 'settings', 'main');
         const ordersRef = collection(db, 'artifacts', appId, 'public', 'data', 'active_orders');
@@ -427,29 +427,35 @@
         window.closeAddItemModal = closeAddItemModal;
         window.saveNewMenuItem = saveNewMenuItem;
 
-        // --- FUNÇÃO DE ALARME SONORO PARA A COZINHA ---
+        // --- ALARME SONORO ALTO E INTENSO PARA A COZINHA ---
         function playAlertSound() {
             try {
                 const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
                 
-                // Toca 2 beeps curtos de alerta
-                const playBeep = (time, freq) => {
+                // Toca uma sequência de 4 bipes fortes e agudos (tipo alarme de microondas/cozinha)
+                const playTone = (freq, start, duration) => {
                     const osc = audioCtx.createOscillator();
                     const gain = audioCtx.createGain();
-                    osc.type = 'sine';
+                    osc.type = 'square'; // Onda quadrada faz um som mais estridente e alto
                     osc.frequency.value = freq;
-                    gain.gain.setValueAtTime(0.3, audioCtx.currentTime + time);
-                    gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + time + 0.2);
+                    
+                    // Volume alto (0.5)
+                    gain.gain.setValueAtTime(0.5, audioCtx.currentTime + start);
+                    gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + start + duration);
+                    
                     osc.connect(gain);
                     gain.connect(audioCtx.destination);
-                    osc.start(audioCtx.currentTime + time);
-                    osc.stop(audioCtx.currentTime + time + 0.2);
+                    
+                    osc.start(audioCtx.currentTime + start);
+                    osc.stop(audioCtx.currentTime + start + duration);
                 };
 
-                playBeep(0, 587.33); // Dó agudo (D5)
-                playBeep(0.25, 880); // Lá agudo (A5)
+                // Sequência de alerta ritmada
+                playTone(880, 0, 0.15);    // Beep 1
+                playTone(880, 0.2, 0.15);  // Beep 2
+                playTone(1174.66, 0.4, 0.3); // Beep 3 (mais agudo e longo)
             } catch(e) {
-                console.log("Áudio bloqueado pelo navegador até haver interação.");
+                console.log("Áudio aguardando interação na página.");
             }
         }
 
@@ -1153,12 +1159,11 @@
                     }
                 });
 
-                // Ouvinte de Pedidos Ativos com Alerta Sonoro Automático
+                // Ouvinte com Alarme Sonoro Alto
                 onSnapshot(ordersRef, (snapshot) => {
                     const newOrdersList = snapshot.docs.map(doc => doc.data());
                     newOrdersList.sort((a, b) => a.id - b.id);
 
-                    // Se já carregou antes e a quantidade de pedidos aumentou, toca o alarme na cozinha!
                     if (previousOrdersCount !== null && newOrdersList.length > previousOrdersCount) {
                         playAlertSound();
                     }
