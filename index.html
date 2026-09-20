@@ -681,7 +681,7 @@
             if (confirm(`Remover do histórico?`)) { await deleteDoc(doc(historyRef, orderId.toString())); showToast('Removido.'); }
         }
 
-        // --- RENDER COZINHA ---
+        // --- RENDER COZINHA (COM O TIPO DE PEDIDO RESTAURADO NO ZOOM) ---
         function renderKitchenView() {
             const container = document.getElementById('kitchen-orders-container');
             if(!container) return;
@@ -749,6 +749,8 @@
             const order = State.orders.find(o => o.id === orderId);
             if (!order) return;
             const modalContent = document.getElementById('zoom-modal-content');
+            const typeColor = order.type === 'Local' ? 'bg-blue-600' : order.type === 'Viagem' ? 'bg-purple-600' : order.type === 'Retirada' ? 'bg-orange-500' : 'bg-red-500';
+
             let itemsHtml = (order.items || []).map((item, i) => {
                 if(item.typeItem === 'plate' || !item.typeItem) {
                     return `<div class="mb-4 bg-gray-50 p-4 border-2 rounded-2xl"><div class="font-bold text-2xl uppercase mb-2">Prato ${i+1} (${item.size})</div><ul class="text-xl space-y-1"><li><b>Prot:</b> ${(item.proteins||[]).join(', ')}</li><li><b>Carbo:</b> ${(item.carbs||[]).join(', ')}</li><li><b>Acomp:</b> ${(item.sides||[]).join(', ')}</li></ul>${item.obs ? `<div class="mt-2 text-red-600 font-bold">Obs: ${item.obs}</div>` : ''}</div>`;
@@ -756,7 +758,18 @@
                     return `<div class="mb-4 bg-amber-50 p-4 border-2 border-amber-200 rounded-2xl"><div class="font-bold text-2xl uppercase mb-1 text-amber-900">Pastel ${i+1}</div><div class="text-2xl font-black text-amber-950">Sabor: ${item.flavor}</div>${item.obs ? `<div class="mt-2 text-red-600 font-bold">Obs: ${item.obs}</div>` : ''}</div>`;
                 }
             }).join('');
-            modalContent.innerHTML = `<h2 class="text-4xl font-black mb-4">#${order.id} - ${order.customer}</h2><div class="space-y-4">${itemsHtml}</div>`;
+            
+            modalContent.innerHTML = `
+                <div class="flex justify-between items-start mb-4">
+                    <div>
+                        <h2 class="text-4xl font-black">#${order.id} - ${order.customer}</h2>
+                    </div>
+                    <div class="${typeColor} text-white px-4 py-2 rounded-xl text-lg font-black uppercase">
+                        PARA ${order.type}
+                    </div>
+                </div>
+                <div class="space-y-4">${itemsHtml}</div>
+            `;
             document.getElementById('zoom-modal').classList.remove('hidden'); document.getElementById('zoom-modal').classList.add('flex');
             document.body.style.overflow = 'hidden';
         }
