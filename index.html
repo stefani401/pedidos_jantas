@@ -78,7 +78,6 @@
                             <option value="Local">🍽️ Consumir no Local</option>
                             <option value="Viagem">🥡 Para Viagem</option>
                             <option value="Retirada">🚶 Retirada</option>
-                            <option value="Delivery">🛵 Delivery</option>
                         </select>
                     </div>
                 </div>
@@ -843,6 +842,7 @@
             container.innerHTML = extras.map(e => `<div class="flex justify-between bg-white p-2 rounded border"><span>+ ${e.title}</span><span class="font-bold">${formatCurrency(e.price)}</span></div>`).join('');
         }
 
+        // --- SALVAR COM TROCO E FORMA DE PAGAMENTO NO HISTÓRICO ---
         async function confirmAndFinishOrder() {
             if (!currentPayingOrderId) return;
             const order = State.orders.find(o => o.id === currentPayingOrderId);
@@ -1136,7 +1136,7 @@
             closeAddPastelModal(); renderPastelAdmin(); showToast('Sabor de pastel adicionado!');
         }
 
-        // --- HISTÓRICO ---
+        // --- HISTÓRICO EXIBINDO FORMA DE PAGAMENTO E TROCO ---
         function renderHistoryAdmin() {
             const container = document.getElementById('history-container');
             container.innerHTML = '';
@@ -1146,15 +1146,24 @@
             dates.forEach(dateStr => {
                 const dayOrders = State.history[dateStr];
                 const dayTotal = dayOrders.reduce((sum, o) => sum + o.total_price, 0);
-                const ordersHtml = dayOrders.map(o => `
-                    <div class="flex justify-between items-center py-2 border-t text-sm">
-                        <div class="flex items-center gap-2">
-                            <button onclick="deleteHistoryOrder(${o.id})" class="text-gray-400 hover:text-red-500"><svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg></button>
-                            <span>#${o.id} - ${o.customer} (${o.type}) • <b class="text-red-600">${o.paymentMethod || 'Dinheiro'}</b> ${o.changeAmount ? `(Troco: ${formatCurrency(o.changeAmount)})` : ''}</span>
+                const ordersHtml = dayOrders.map(o => {
+                    const payInfo = o.paymentMethod === 'Dinheiro' 
+                        ? `Dinheiro (Recebido: ${formatCurrency(o.amountReceived || o.total_price)} | Troco: ${formatCurrency(o.changeAmount || 0)})` 
+                        : (o.paymentMethod || 'Dinheiro');
+
+                    return `
+                        <div class="flex justify-between items-center py-2 border-t text-sm">
+                            <div class="flex items-center gap-2">
+                                <button onclick="deleteHistoryOrder(${o.id})" class="text-gray-400 hover:text-red-500"><svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg></button>
+                                <div>
+                                    <span class="font-bold">#${o.id} - ${o.customer}</span> (${o.type})
+                                    <div class="text-xs text-gray-500">Pgto: <b class="text-red-600">${payInfo}</b></div>
+                                </div>
+                            </div>
+                            <span class="font-bold text-green-700">${formatCurrency(o.total_price)}</span>
                         </div>
-                        <span class="font-bold">${formatCurrency(o.total_price)}</span>
-                    </div>
-                `).join('');
+                    `;
+                }).join('');
 
                 container.innerHTML += `
                     <div class="bg-white rounded-xl shadow-sm border mb-4 overflow-hidden">
