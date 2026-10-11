@@ -288,20 +288,20 @@
         </div>
     </div>
 
-    <!-- MODAL: Pagamento, Troco, Adicionar Prato ou Extras na Comanda Aberta -->
+    <!-- MODAL: Pagamento, Troco e Adicionar Itens na Comanda Aberta -->
     <div id="payment-modal" class="fixed inset-0 bg-black bg-opacity-50 z-[120] hidden flex justify-center items-center p-4">
         <div class="bg-white rounded-3xl w-full max-w-md p-6 modal-enter shadow-2xl max-h-[90vh] overflow-y-auto">
             <h3 class="font-black text-xl mb-1 text-gray-800">Comanda Aberta / Pagamento</h3>
             <p id="pay-order-info" class="text-xs text-gray-500 mb-4 font-semibold"></p>
             
-            <!-- BOTÕES PARA ADICIONAR MAIS ITENS NA COMANDA ABERTA -->
+            <!-- BOTÕES PARA ADICIONAR PRATO OU PASTEL -->
             <div class="mb-4 bg-amber-50 border border-amber-200 p-4 rounded-2xl">
                 <label class="block text-xs font-semibold text-amber-900 uppercase mb-2">Adicionar mais itens nesta comanda:</label>
-                <div class="grid grid-cols-2 gap-2 mb-2">
-                    <button onclick="openAddPlateToExistingOrder()" class="py-2.5 bg-white border border-amber-300 rounded-xl text-xs font-bold text-amber-900 hover:bg-amber-100 flex items-center justify-center gap-1">
+                <div class="grid grid-cols-2 gap-2">
+                    <button type="button" onclick="openAddPlateToExistingOrder()" class="py-2.5 bg-white border border-amber-300 rounded-xl text-xs font-bold text-amber-900 hover:bg-amber-100 flex items-center justify-center gap-1 shadow-sm">
                         🍽️ + Pratinho
                     </button>
-                    <button onclick="openAddPastelToExistingOrder()" class="py-2.5 bg-white border border-amber-300 rounded-xl text-xs font-bold text-amber-900 hover:bg-amber-100 flex items-center justify-center gap-1">
+                    <button type="button" onclick="openAddPastelToExistingOrder()" class="py-2.5 bg-white border border-amber-300 rounded-xl text-xs font-bold text-amber-900 hover:bg-amber-100 flex items-center justify-center gap-1 shadow-sm">
                         🥟 + Pastel
                     </button>
                 </div>
@@ -313,7 +313,7 @@
                 <div class="flex gap-2">
                     <input type="text" id="pay-extra-desc" placeholder="Ex: Refrigerante" class="flex-1 px-3 py-2 border rounded-xl text-sm outline-none bg-white">
                     <input type="number" step="0.01" id="pay-extra-val" placeholder="R$ 0,00" class="w-24 px-3 py-2 border rounded-xl text-sm outline-none bg-white">
-                    <button onclick="addExtraToExistingOrder()" class="bg-blue-600 hover:bg-blue-700 text-white font-bold px-3 py-2 rounded-xl text-sm whitespace-nowrap">+ Somar</button>
+                    <button type="button" onclick="addExtraToExistingOrder()" class="bg-blue-600 hover:bg-blue-700 text-white font-bold px-3 py-2 rounded-xl text-sm whitespace-nowrap">+ Somar</button>
                 </div>
                 <div id="pay-extras-list" class="mt-2 space-y-1 text-xs text-gray-700"></div>
             </div>
@@ -343,8 +343,8 @@
             </div>
 
             <div class="flex gap-3 mt-4">
-                <button onclick="closePaymentModal()" class="flex-1 py-3 bg-gray-100 text-gray-700 rounded-xl font-bold hover:bg-gray-200">Voltar</button>
-                <button onclick="confirmAndFinishOrder()" class="flex-1 py-3 bg-green-500 hover:bg-green-600 text-white rounded-xl font-bold shadow-md">Receber & Fechar</button>
+                <button type="button" onclick="closePaymentModal()" class="flex-1 py-3 bg-gray-100 text-gray-700 rounded-xl font-bold hover:bg-gray-200">Voltar</button>
+                <button type="button" onclick="confirmAndFinishOrder()" class="flex-1 py-3 bg-green-500 hover:bg-green-600 text-white rounded-xl font-bold shadow-md">Receber & Fechar</button>
             </div>
         </div>
     </div>
@@ -466,6 +466,7 @@
         let previousOrdersCount = null;
         let currentPayingOrderId = null;
         let currentPaymentMethod = 'Dinheiro';
+        let isAddingToExistingOrder = false;
 
         const configRef = doc(db, 'artifacts', appId, 'public', 'data', 'settings', 'main');
         const ordersRef = collection(db, 'artifacts', appId, 'public', 'data', 'active_orders');
@@ -590,6 +591,7 @@
 
         // --- PRATOS BUILDER ---
         function openPlateBuilder() {
+            isAddingToExistingOrder = false;
             currentPlate = { size: 'P', proteins: [], carbs: [], sides: [], obs: '' };
             document.getElementById('builder-obs').value = '';
             renderPlateBuilderUI();
@@ -621,19 +623,40 @@
             if(idx > -1) currentPlate[category].splice(idx, 1); else currentPlate[category].push(itemName);
             renderPlateBuilderUI();
         }
-        function savePlateToCart() {
+
+        async function savePlateToCart() {
             currentPlate.obs = document.getElementById('builder-obs').value.trim();
-            State.cart.push({
+            const newPlateItem = {
                 cartId: Date.now(), typeItem: 'plate', size: currentPlate.size, price: State.prices[currentPlate.size],
                 proteins: [...currentPlate.proteins], carbs: [...currentPlate.carbs], sides: [...currentPlate.sides], obs: currentPlate.obs
-            });
-            closePlateBuilder();
-            renderCart();
-            showToast('Prato adicionado à comanda!');
+            };
+
+            if (isAddingToExistingOrder && currentPayingOrderId) {
+                const order = State.orders.find(o => o.id === currentPayingOrderId);
+                if(order) {
+                    if(!order.items) order.items = [];
+                    order.items.push(newPlateItem);
+                    order.total_price += newPlateItem.price;
+                    order.status = 'pending';
+                    try {
+                        await updateDoc(doc(ordersRef, order.id.toString()), { items: order.items, total_price: order.total_price, status: 'pending' });
+                    } catch(e) {}
+                    showToast('Prato adicionado à comanda e enviado à cozinha!');
+                }
+                isAddingToExistingOrder = false;
+                closePlateBuilder();
+                renderWaiterStatus();
+            } else {
+                State.cart.push(newPlateItem);
+                closePlateBuilder();
+                renderCart();
+                showToast('Prato adicionado à comanda!');
+            }
         }
 
         // --- PASTEL MODAL ---
         function openPastelModal() {
+            isAddingToExistingOrder = false;
             selectedPastelFlavor = null;
             document.getElementById('pastel-obs').value = '';
             document.getElementById('pastel-price-display').innerText = formatCurrency(State.prices.Pastel || 8.00);
@@ -659,19 +682,38 @@
 
         function selectPastelFlavor(flavorName) { selectedPastelFlavor = flavorName; renderPastelFlavorsUI(); }
 
-        function savePastelToCart() {
+        async function savePastelToCart() {
             if(!selectedPastelFlavor) {
                 showToast('Selecione o sabor do pastel!', 'error');
                 return;
             }
             const obs = document.getElementById('pastel-obs').value.trim();
             const pastelPrice = State.prices.Pastel || 8.00;
-            State.cart.push({
+            const newPastelItem = {
                 cartId: Date.now(), typeItem: 'pastel', flavor: selectedPastelFlavor, price: pastelPrice, obs: obs
-            });
-            closePastelModal();
-            renderCart();
-            showToast(`Pastel de ${selectedPastelFlavor} adicionado!`);
+            };
+
+            if (isAddingToExistingOrder && currentPayingOrderId) {
+                const order = State.orders.find(o => o.id === currentPayingOrderId);
+                if(order) {
+                    if(!order.items) order.items = [];
+                    order.items.push(newPastelItem);
+                    order.total_price += newPastelItem.price;
+                    order.status = 'pending';
+                    try {
+                        await updateDoc(doc(ordersRef, order.id.toString()), { items: order.items, total_price: order.total_price, status: 'pending' });
+                    } catch(e) {}
+                    showToast(`Pastel de ${selectedPastelFlavor} adicionado e enviado à cozinha!`);
+                }
+                isAddingToExistingOrder = false;
+                closePastelModal();
+                renderWaiterStatus();
+            } else {
+                State.cart.push(newPastelItem);
+                closePastelModal();
+                renderCart();
+                showToast(`Pastel de ${selectedPastelFlavor} adicionado!`);
+            }
         }
 
         // --- ADICIONAR VALOR EXTRA AO CARRINHO ---
@@ -795,7 +837,6 @@
             document.getElementById('payment-modal').classList.add('hidden');
             document.getElementById('payment-modal').classList.remove('flex');
             document.body.style.overflow = 'auto';
-            currentPayingOrderId = null;
         }
 
         function setPaymentMethod(method) {
@@ -849,66 +890,29 @@
             showToast('Item extra adicionado na comanda!');
         }
 
-        // --- ADICIONAR PRATO OU PASTEL EM COMANDA JÁ ABERTA (VAI PRA COZINHA) ---
+        // --- ABRIR MODAL DE PRATO/PASTEL PARA COMANDA JÁ ABERTA ---
         function openAddPlateToExistingOrder() {
             if(!currentPayingOrderId) return;
             closePaymentModal();
-            openPlateBuilder();
-            // Sobrescreve o salvamento para adicionar na comanda existente em vez de criar nova
-            window.savePlateToCart = async function() {
-                currentPlate.obs = document.getElementById('builder-obs').value.trim();
-                const newPlateItem = {
-                    cartId: Date.now(), typeItem: 'plate', size: currentPlate.size, price: State.prices[currentPlate.size],
-                    proteins: [...currentPlate.proteins], carbs: [...currentPlate.carbs], sides: [...currentPlate.sides], obs: currentPlate.obs
-                };
-                const order = State.orders.find(o => o.id === currentPayingOrderId);
-                if(order) {
-                    if(!order.items) order.items = [];
-                    order.items.push(newPlateItem);
-                    order.total_price += newPlateItem.price;
-                    // Volta o status para 'pending' ou 'preparing' para alertar a cozinha do acréscimo
-                    order.status = 'pending';
-                    try {
-                        await updateDoc(doc(ordersRef, order.id.toString()), { items: order.items, total_price: order.total_price, status: 'pending' });
-                    } catch(e) {}
-                    showToast('Prato adicionado à comanda e enviado à cozinha!');
-                }
-                closePlateBuilder();
-                // Restaura a função padrão do botão de salvar prato para novas comandas
-                window.savePlateToCart = savePlateToCartOriginal;
-                renderWaiterStatus();
-            };
+            isAddingToExistingOrder = true;
+            currentPlate = { size: 'P', proteins: [], carbs: [], sides: [], obs: '' };
+            document.getElementById('builder-obs').value = '';
+            renderPlateBuilderUI();
+            document.getElementById('plate-modal').classList.remove('hidden');
+            document.body.style.overflow = 'hidden';
         }
 
         function openAddPastelToExistingOrder() {
             if(!currentPayingOrderId) return;
             closePaymentModal();
-            openPastelModal();
-            window.savePastelToCart = async function() {
-                if(!selectedPastelFlavor) { showToast('Selecione o sabor!', 'error'); return; }
-                const obs = document.getElementById('pastel-obs').value.trim();
-                const pastelPrice = State.prices.Pastel || 8.00;
-                const newPastelItem = {
-                    cartId: Date.now(), typeItem: 'pastel', flavor: selectedPastelFlavor, price: pastelPrice, obs: obs
-                };
-                const order = State.orders.find(o => o.id === currentPayingOrderId);
-                if(order) {
-                    if(!order.items) order.items = [];
-                    order.items.push(newPastelItem);
-                    order.total_price += newPastelItem.price;
-                    order.status = 'pending';
-                    try {
-                        await updateDoc(doc(ordersRef, order.id.toString()), { items: order.items, total_price: order.total_price, status: 'pending' });
-                    } catch(e) {}
-                    showToast(`Pastel de ${selectedPastelFlavor} adicionado e enviado à cozinha!`);
-                }
-                closePastelModal();
-                window.savePastelToCart = savePastelToCartOriginal;
-                renderWaiterStatus();
-            };
+            isAddingToExistingOrder = true;
+            selectedPastelFlavor = null;
+            document.getElementById('pastel-obs').value = '';
+            document.getElementById('pastel-price-display').innerText = formatCurrency(State.prices.Pastel || 8.00);
+            renderPastelFlavorsUI();
+            document.getElementById('pastel-modal').classList.remove('hidden');
+            document.body.style.overflow = 'hidden';
         }
-
-        const savePlateToCartOriginal = savePlateToCart;
 
         function renderPayExtrasList(order) {
             const container = document.getElementById('pay-extras-list');
