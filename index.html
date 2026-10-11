@@ -125,9 +125,9 @@
             </button>
         </div>
 
-        <!-- VIEW 2: STATUS -->
+        <!-- VIEW 2: STATUS (COMANDAS EM ABERTO) -->
         <div id="view-status" class="view-section p-4 max-w-4xl mx-auto hidden">
-            <h2 class="font-bold text-xl mb-4 text-gray-800">Meus Pedidos Ativos</h2>
+            <h2 class="font-bold text-xl mb-4 text-gray-800">Comandas em Aberto (Ativas)</h2>
             <div id="waiter-status-container" class="grid grid-cols-1 md:grid-cols-2 gap-4"></div>
         </div>
 
@@ -209,7 +209,7 @@
         </button>
         <button onclick="switchView('status')" id="nav-status" class="nav-btn flex-1 py-3 flex flex-col items-center gap-1 text-gray-400 hover:text-gray-600 transition-colors">
             <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4"></path></svg>
-            <span class="text-[10px] font-bold uppercase tracking-wider">Status</span>
+            <span class="text-[10px] font-bold uppercase tracking-wider">Abertas</span>
         </button>
         <button onclick="switchView('cozinha')" id="nav-cozinha" class="nav-btn flex-1 py-3 flex flex-col items-center gap-1 text-gray-400 hover:text-gray-600 transition-colors">
             <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 14v6m-3-3h6M6 10h2a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v2a2 2 0 002 2zm10 0h2a2 2 0 002-2V6a2 2 0 00-2-2h-2a2 2 0 00-2 2v2a2 2 0 002 2zM6 20h2a2 2 0 002-2v-2a2 2 0 00-2-2H6a2 2 0 00-2 2v2a2 2 0 002 2z"></path></svg>
@@ -289,12 +289,22 @@
         </div>
     </div>
 
-    <!-- MODAL: Pagamento e Finalização (Troco / Dinheiro / Cartão / Pix) -->
+    <!-- MODAL: Pagamento, Troco e Adicionar Extras na Comanda Aberta -->
     <div id="payment-modal" class="fixed inset-0 bg-black bg-opacity-50 z-[120] hidden flex justify-center items-center p-4">
-        <div class="bg-white rounded-3xl w-full max-w-md p-6 modal-enter shadow-2xl">
-            <h3 class="font-black text-xl mb-1 text-gray-800">Finalizar Pedido / Pagamento</h3>
+        <div class="bg-white rounded-3xl w-full max-w-md p-6 modal-enter shadow-2xl max-h-[90vh] overflow-y-auto">
+            <h3 class="font-black text-xl mb-1 text-gray-800">Comanda Aberta / Pagamento</h3>
             <p id="pay-order-info" class="text-xs text-gray-500 mb-4 font-semibold"></p>
             
+            <div class="mb-4 bg-blue-50 border border-blue-200 p-4 rounded-2xl">
+                <label class="block text-xs font-semibold text-blue-900 uppercase mb-1">Adicionar Item Extra (Refri, Água, etc)</label>
+                <div class="flex gap-2">
+                    <input type="text" id="pay-extra-desc" placeholder="Ex: Refrigerante" class="flex-1 px-3 py-2 border rounded-xl text-sm outline-none bg-white">
+                    <input type="number" step="0.01" id="pay-extra-val" placeholder="R$ 0,00" class="w-24 px-3 py-2 border rounded-xl text-sm outline-none bg-white">
+                    <button onclick="addExtraToExistingOrder()" class="bg-blue-600 hover:bg-blue-700 text-white font-bold px-3 py-2 rounded-xl text-sm whitespace-nowrap">+ Somar</button>
+                </div>
+                <div id="pay-extras-list" class="mt-2 space-y-1 text-xs text-gray-700"></div>
+            </div>
+
             <div class="mb-4">
                 <label class="block text-xs font-semibold text-gray-500 uppercase mb-2">Forma de Pagamento</label>
                 <div class="grid grid-cols-3 gap-2">
@@ -306,11 +316,11 @@
 
             <div id="cash-change-container" class="mb-4 space-y-3 bg-gray-50 p-4 rounded-2xl border">
                 <div class="flex justify-between items-center text-sm font-bold">
-                    <span>Total a Pagar:</span>
+                    <span>Total Atual:</span>
                     <span id="pay-total-display" class="text-green-600 text-lg">R$ 0,00</span>
                 </div>
                 <div>
-                    <label class="block text-xs font-semibold text-gray-500 uppercase mb-1">Valor Recebido em Dinheiro (R$)</label>
+                    <label class="block text-xs font-semibold text-gray-500 uppercase mb-1">Valor Recebido (R$)</label>
                     <input type="number" step="0.01" id="pay-received" placeholder="Ex: 50.00" oninput="calculateChange()" class="w-full px-4 py-3 rounded-xl border border-gray-300 bg-white font-bold text-lg outline-none focus:ring-2 focus:ring-red-500">
                 </div>
                 <div class="flex justify-between items-center text-sm font-bold pt-2 border-t">
@@ -319,19 +329,9 @@
                 </div>
             </div>
 
-            <div class="mb-6">
-                <label class="block text-xs font-semibold text-gray-500 uppercase mb-1">Adicionar Valor Extra (Ex: Refri / Água / Item a mais)</label>
-                <div class="flex gap-2">
-                    <input type="text" id="pay-extra-desc" placeholder="Ex: Refrigerante" class="flex-1 px-3 py-2 border rounded-xl text-sm outline-none bg-white">
-                    <input type="number" step="0.01" id="pay-extra-val" placeholder="R$ 0,00" class="w-28 px-3 py-2 border rounded-xl text-sm outline-none bg-white">
-                    <button onclick="addExtraToExistingOrder()" class="bg-gray-800 text-white font-bold px-3 py-2 rounded-xl text-sm">+ Somar</button>
-                </div>
-                <div id="pay-extras-list" class="mt-2 space-y-1 text-xs text-gray-600"></div>
-            </div>
-
-            <div class="flex gap-3">
+            <div class="flex gap-3 mt-4">
                 <button onclick="closePaymentModal()" class="flex-1 py-3 bg-gray-100 text-gray-700 rounded-xl font-bold hover:bg-gray-200">Voltar</button>
-                <button onclick="confirmAndFinishOrder()" class="flex-1 py-3 bg-green-500 hover:bg-green-600 text-white rounded-xl font-bold shadow-md">Concluído / Caixa</button>
+                <button onclick="confirmAndFinishOrder()" class="flex-1 py-3 bg-green-500 hover:bg-green-600 text-white rounded-xl font-bold shadow-md">Receber & Fechar</button>
             </div>
         </div>
     </div>
@@ -508,7 +508,6 @@
             switchView('lancamento'); 
             switchAdminTab('historico'); 
             initializeCloud(); 
-            // Garante que o loading some em até 1.5s mesmo se a nuvem demorar
             setTimeout(hideLoading, 1500);
         });
 
@@ -556,7 +555,7 @@
             document.getElementById(`nav-${viewName}`).classList.remove('text-gray-400');
             document.getElementById(`nav-${viewName}`).classList.add('text-red-600');
             
-            const titles = { 'lancamento': 'Lançar Pedido', 'status': 'Status', 'cozinha': 'Cozinha', 'admin': 'Administração' };
+            const titles = { 'lancamento': 'Lançar Pedido', 'status': 'Comandas em Aberto', 'cozinha': 'Cozinha', 'admin': 'Administração' };
             document.getElementById('header-title').innerText = titles[viewName];
 
             if(viewName === 'cozinha') renderKitchenView();
@@ -742,7 +741,6 @@
             try {
                 await setDoc(doc(ordersRef, newOrder.id.toString()), newOrder);
             } catch(e) {
-                // Salva localmente se offline
                 State.orders.push(newOrder);
                 renderKitchenView();
                 renderWaiterStatus();
@@ -958,7 +956,7 @@
                     </div>
                     <div class="mt-4 pt-3 border-t flex gap-2">
                         ${!isPreparing ? `<button onclick="changeOrderStatus(${order.id}, 'preparing')" class="flex-1 bg-blue-50 hover:bg-blue-100 text-blue-700 py-2 rounded-lg font-bold text-sm">Preparar</button>` : ''}
-                        <button onclick="changeOrderStatus(${order.id}, 'ready')" class="flex-1 bg-green-500 hover:bg-green-600 text-white py-2 rounded-lg font-bold text-sm shadow-sm">Pronto / Caixa</button>
+                        <button onclick="changeOrderStatus(${order.id}, 'ready')" class="flex-1 bg-green-500 hover:bg-green-600 text-white py-2 rounded-lg font-bold text-sm shadow-sm">Pagar / Fechar</button>
                     </div>
                 `;
                 container.appendChild(card);
@@ -1002,16 +1000,16 @@
             const container = document.getElementById('waiter-status-container');
             if(!container) return;
             container.innerHTML = '';
-            if (!State.orders || State.orders.length === 0) { container.innerHTML = `<div class="col-span-full text-gray-500 italic">Nenhum pedido ativo.</div>`; return; }
+            if (!State.orders || State.orders.length === 0) { container.innerHTML = `<div class="col-span-full text-gray-500 italic">Nenhuma comanda em aberto no momento.</div>`; return; }
             [...State.orders].reverse().forEach(order => {
                 container.innerHTML += `
                     <div class="bg-white rounded-xl shadow-sm border p-4 flex justify-between items-center">
                         <div>
-                            <div class="font-bold text-lg">#${order.id} - ${order.customer}</div>
+                            <div class="font-bold text-lg">#${order.id} - ${order.customer} <span class="text-xs bg-gray-100 text-gray-600 px-2 py-0.5 rounded">${order.type}</span></div>
                             <div class="text-sm text-gray-600">${(order.items||[]).length} item(s) • <b class="text-green-600">${formatCurrency(order.total_price)}</b></div>
                         </div>
                         <div class="flex items-center gap-2">
-                            <button onclick="openPaymentModal(${order.id})" class="bg-green-500 hover:bg-green-600 text-white font-bold px-3 py-2 rounded-xl text-sm shadow-sm">Finalizar / Caixa</button>
+                            <button onclick="openPaymentModal(${order.id})" class="bg-green-500 hover:bg-green-600 text-white font-bold px-4 py-2 rounded-xl text-sm shadow-sm">Abrir / Pagar</button>
                         </div>
                     </div>
                 `;
@@ -1168,7 +1166,8 @@
                     if (previousOrdersCount !== null && list.length > previousOrdersCount) { playAlertSound(); }
                     previousOrdersCount = list.length;
                     State.orders = list;
-                    renderKitchenView(); renderWaiterStatus();
+                    renderKitchenView();
+                    renderWaiterStatus();
                 });
 
                 onSnapshot(historyRef, (snapshot) => {
