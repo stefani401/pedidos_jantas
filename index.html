@@ -396,7 +396,8 @@
         import { getAuth, signInAnonymously } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
         import { getFirestore, doc, getDoc, setDoc, updateDoc, deleteDoc, onSnapshot, collection } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
-        const appId = 'kds-pdv-app-final';
+        // APP ID COMPARTILHADO E GARANTIDO ENTRE CELULAR E COMPUTADOR
+        const appId = 'kds-pdv-app-stefani-oficial';
         const firebaseConfig = {
             apiKey: "AIzaSyBZz3WuV9RHjacAjfHX8yhrQa70B5Dv3VI",
             authDomain: "pedidos-janta.firebaseapp.com",
@@ -511,24 +512,28 @@
             setTimeout(hideLoading, 1500);
         });
 
+        // --- ALARME SONORO REFORÇADO PARA TOCAR NA COZINHA ---
         function playAlertSound() {
             try {
                 const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+                if (audioCtx.state === 'suspended') {
+                    audioCtx.resume();
+                }
                 const playBeep = (freq, start, duration) => {
                     const osc = audioCtx.createOscillator();
                     const gain = audioCtx.createGain();
                     osc.type = 'sawtooth';
                     osc.frequency.value = freq;
-                    gain.gain.setValueAtTime(0.7, audioCtx.currentTime + start);
+                    gain.gain.setValueAtTime(0.8, audioCtx.currentTime + start);
                     gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + start + duration);
                     osc.connect(gain);
                     gain.connect(audioCtx.destination);
                     osc.start(audioCtx.currentTime + start);
                     osc.stop(audioCtx.currentTime + start + duration);
                 };
-                playBeep(1200, 0, 0.2);
-                playBeep(1200, 0.25, 0.2);
-                playBeep(1500, 0.5, 0.35);
+                playBeep(1000, 0, 0.25);
+                playBeep(1400, 0.3, 0.25);
+                playBeep(1800, 0.6, 0.4);
             } catch(e) {}
         }
 
@@ -874,7 +879,6 @@
             showToast(`Pedido #${order.id} finalizado e pago via ${currentPaymentMethod}!`);
         }
 
-        // --- CORREÇÃO: QUANDO A COZINHA CLICA EM PRONTO, O PEDIDO VAI PARA AS COMANDAS EM ABERTO E NÃO SOME ---
         async function changeOrderStatus(orderId, newStatus) {
             if (newStatus === 'ready') {
                 try {
@@ -914,7 +918,6 @@
             if(!container) return;
             container.innerHTML = '';
             
-            // Exibe na cozinha apenas pedidos pendentes ou preparando (ignora os prontos que foram para comandas em aberto)
             const kitchenOrders = State.orders.filter(o => o.status !== 'ready');
 
             if (kitchenOrders.length === 0) {
@@ -1015,7 +1018,6 @@
             if(!container) return;
             container.innerHTML = '';
             
-            // Exibe todas as comandas ativas (inclusive as que a cozinha marcou como prontas)
             if (!State.orders || State.orders.length === 0) { 
                 container.innerHTML = `<div class="col-span-full text-gray-500 italic">Nenhuma comanda em aberto no momento.</div>`; 
                 return; 
@@ -1193,7 +1195,9 @@
                 onSnapshot(ordersRef, (snapshot) => {
                     const list = snapshot.docs.map(doc => doc.data());
                     list.sort((a, b) => a.id - b.id);
-                    if (previousOrdersCount !== null && list.length > previousOrdersCount) { playAlertSound(); }
+                    if (previousOrdersCount !== null && list.length > previousOrdersCount) { 
+                        playAlertSound(); 
+                    }
                     previousOrdersCount = list.length;
                     State.orders = list;
                     renderKitchenView();
