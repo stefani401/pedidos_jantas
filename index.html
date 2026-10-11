@@ -86,7 +86,7 @@
 
             <div class="bg-white rounded-2xl shadow-sm border border-gray-200 p-5 mb-4">
                 <div class="flex justify-between items-center border-b pb-2 mb-4">
-                    <h2 class="font-bold text-gray-800">2. Pratos e Itens da Comanda</h2>
+                    <h2 class="font-bold text-gray-800">2. Pratos, Pastéis e Extras</h2>
                     <span id="cart-total" class="font-bold text-green-600 text-lg">R$ 0,00</span>
                 </div>
                 
@@ -95,7 +95,7 @@
                     Nenhum item adicionado ainda.
                 </div>
 
-                <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-4">
                     <button onclick="openPlateBuilder()" class="w-full py-3 bg-gray-100 hover:bg-gray-200 text-gray-800 rounded-xl font-semibold border border-gray-300 border-dashed flex justify-center items-center gap-2 transition-colors">
                         <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path></svg>
                         Adicionar Prato
@@ -104,6 +104,13 @@
                         <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path></svg>
                         Adicionar Pastel
                     </button>
+                </div>
+
+                <!-- CAMPO PARA ADICIONAR VALOR EXTRA RÁPIDO (EX: REFRI, ÁGUA - NÃO VAI PRA COZINHA) -->
+                <div class="bg-blue-50 border border-blue-200 p-3 rounded-xl flex gap-2 items-center">
+                    <input type="text" id="extra-desc" placeholder="Ex: Refri / Água / Adicional" class="flex-1 px-3 py-2 border rounded-lg bg-white text-sm outline-none">
+                    <input type="number" step="0.01" id="extra-val" placeholder="R$ 0,00" class="w-28 px-3 py-2 border rounded-lg bg-white text-sm outline-none">
+                    <button onclick="addExtraToCart()" class="bg-blue-600 hover:bg-blue-700 text-white font-bold px-4 py-2 rounded-lg text-sm whitespace-nowrap">+ Extra</button>
                 </div>
             </div>
 
@@ -282,6 +289,53 @@
         </div>
     </div>
 
+    <!-- MODAL: Pagamento e Finalização (Troco / Dinheiro / Cartão / Pix) -->
+    <div id="payment-modal" class="fixed inset-0 bg-black bg-opacity-50 z-[120] hidden flex justify-center items-center p-4">
+        <div class="bg-white rounded-3xl w-full max-w-md p-6 modal-enter shadow-2xl">
+            <h3 class="font-black text-xl mb-1 text-gray-800">Finalizar Pedido / Pagamento</h3>
+            <p id="pay-order-info" class="text-xs text-gray-500 mb-4 font-semibold"></p>
+            
+            <div class="mb-4">
+                <label class="block text-xs font-semibold text-gray-500 uppercase mb-2">Forma de Pagamento</label>
+                <div class="grid grid-cols-3 gap-2">
+                    <button type="button" onclick="setPaymentMethod('Dinheiro')" id="pm-dinheiro" class="pay-method-btn py-3 border-2 rounded-xl font-bold text-sm border-red-500 bg-red-50 text-red-600">💵 Dinheiro</button>
+                    <button type="button" onclick="setPaymentMethod('Cartão')" id="pm-cartao" class="pay-method-btn py-3 border-2 rounded-xl font-bold text-sm border-gray-200 text-gray-600">💳 Cartão</button>
+                    <button type="button" onclick="setPaymentMethod('PIX')" id="pm-pix" class="pay-method-btn py-3 border-2 rounded-xl font-bold text-sm border-gray-200 text-gray-600">📱 PIX</button>
+                </div>
+            </div>
+
+            <div id="cash-change-container" class="mb-4 space-y-3 bg-gray-50 p-4 rounded-2xl border">
+                <div class="flex justify-between items-center text-sm font-bold">
+                    <span>Total a Pagar:</span>
+                    <span id="pay-total-display" class="text-green-600 text-lg">R$ 0,00</span>
+                </div>
+                <div>
+                    <label class="block text-xs font-semibold text-gray-500 uppercase mb-1">Valor Recebido em Dinheiro (R$)</label>
+                    <input type="number" step="0.01" id="pay-received" placeholder="Ex: 50.00" oninput="calculateChange()" class="w-full px-4 py-3 rounded-xl border border-gray-300 bg-white font-bold text-lg outline-none focus:ring-2 focus:ring-red-500">
+                </div>
+                <div class="flex justify-between items-center text-sm font-bold pt-2 border-t">
+                    <span>Troco:</span>
+                    <span id="pay-change-display" class="text-blue-600 text-lg">R$ 0,00</span>
+                </div>
+            </div>
+
+            <div class="mb-6">
+                <label class="block text-xs font-semibold text-gray-500 uppercase mb-1">Adicionar Valor Extra (Ex: Refri / Água / Item a mais)</label>
+                <div class="flex gap-2">
+                    <input type="text" id="pay-extra-desc" placeholder="Ex: Refrigerante" class="flex-1 px-3 py-2 border rounded-xl text-sm outline-none bg-white">
+                    <input type="number" step="0.01" id="pay-extra-val" placeholder="R$ 0,00" class="w-28 px-3 py-2 border rounded-xl text-sm outline-none bg-white">
+                    <button onclick="addExtraToExistingOrder()" class="bg-gray-800 text-white font-bold px-3 py-2 rounded-xl text-sm">+ Somar</button>
+                </div>
+                <div id="pay-extras-list" class="mt-2 space-y-1 text-xs text-gray-600"></div>
+            </div>
+
+            <div class="flex gap-3">
+                <button onclick="closePaymentModal()" class="flex-1 py-3 bg-gray-100 text-gray-700 rounded-xl font-bold hover:bg-gray-200">Voltar</button>
+                <button onclick="confirmAndFinishOrder()" class="flex-1 py-3 bg-green-500 hover:bg-green-600 text-white rounded-xl font-bold shadow-md">Concluído / Caixa</button>
+            </div>
+        </div>
+    </div>
+
     <!-- MODAL: Adicionar Item ao Cardápio -->
     <div id="add-item-modal" class="fixed inset-0 bg-black bg-opacity-50 z-[100] hidden flex justify-center items-center">
         <div class="bg-white rounded-2xl w-full max-w-sm p-5 modal-enter mx-4">
@@ -397,6 +451,8 @@
         let currentPlate = { size: null, proteins: [], carbs: [], sides: [], obs: '' };
         let selectedPastelFlavor = null;
         let previousOrdersCount = null;
+        let currentPayingOrderId = null;
+        let currentPaymentMethod = 'Dinheiro';
 
         const configRef = doc(db, 'artifacts', appId, 'public', 'data', 'settings', 'main');
         const ordersRef = collection(db, 'artifacts', appId, 'public', 'data', 'active_orders');
@@ -414,7 +470,14 @@
         window.selectPastelFlavor = selectPastelFlavor;
         window.savePastelToCart = savePastelToCart;
         window.removeItemFromCart = removeItemFromCart;
+        window.addExtraToCart = addExtraToCart;
         window.sendOrder = sendOrder;
+        window.openPaymentModal = openPaymentModal;
+        window.closePaymentModal = closePaymentModal;
+        window.setPaymentMethod = setPaymentMethod;
+        window.calculateChange = calculateChange;
+        window.addExtraToExistingOrder = addExtraToExistingOrder;
+        window.confirmAndFinishOrder = confirmAndFinishOrder;
         window.changeOrderStatus = changeOrderStatus;
         window.deleteActiveOrder = deleteActiveOrder;
         window.deleteHistoryOrder = deleteHistoryOrder;
@@ -433,15 +496,12 @@
         window.closeAddPastelModal = closeAddPastelModal;
         window.saveNewPastelFlavor = saveNewPastelFlavor;
 
-        // --- FORÇAR FOCO E ABERTURA DO TECLADO EM PWA (TELA DE INÍCIO) ---
         document.addEventListener('DOMContentLoaded', () => {
             const inputs = document.querySelectorAll('input[type="text"], textarea');
             inputs.forEach(input => {
                 input.addEventListener('touchend', (e) => {
                     e.stopPropagation();
-                    setTimeout(() => {
-                        input.focus();
-                    }, 50);
+                    setTimeout(() => { input.focus(); }, 50);
                 });
             });
         });
@@ -593,6 +653,23 @@
             showToast(`Pastel de ${selectedPastelFlavor} adicionado!`);
         }
 
+        // --- ADICIONAR VALOR EXTRA AO CARRINHO (NÃO VAI PRA COZINHA) ---
+        function addExtraToCart() {
+            const desc = document.getElementById('extra-desc').value.trim();
+            const val = parseFloat(document.getElementById('extra-val').value);
+            if(!desc || isNaN(val) || val <= 0) {
+                showToast('Informe a descrição e o valor do extra!', 'error');
+                return;
+            }
+            State.cart.push({
+                cartId: Date.now(), typeItem: 'extra', title: desc, price: val
+            });
+            document.getElementById('extra-desc').value = '';
+            document.getElementById('extra-val').value = '';
+            renderCart();
+            showToast(`${desc} adicionado à comanda!`);
+        }
+
         // --- CARRINHO ---
         function renderCart() {
             const container = document.getElementById('cart-items');
@@ -616,11 +693,18 @@
                             <button onclick="removeItemFromCart(${item.cartId})" class="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-red-500 p-2"><svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg></button>
                         </div>
                     `;
-                } else {
+                } else if(item.typeItem === 'pastel') {
                     container.innerHTML += `
                         <div class="bg-amber-50 rounded-xl p-3 border border-amber-200 relative pr-10">
                             <div class="flex justify-between items-start mb-1"><span class="font-bold text-amber-900">Pastel de ${item.flavor}</span><span class="font-semibold">${formatCurrency(item.price)}</span></div>
                             ${item.obs ? `<p class="text-xs text-red-600 font-medium">Obs: ${item.obs}</p>` : ''}
+                            <button onclick="removeItemFromCart(${item.cartId})" class="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-red-500 p-2"><svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg></button>
+                        </div>
+                    `;
+                } else {
+                    container.innerHTML += `
+                        <div class="bg-blue-50 rounded-xl p-3 border border-blue-200 relative pr-10">
+                            <div class="flex justify-between items-start mb-1"><span class="font-bold text-blue-900">Extra: ${item.title}</span><span class="font-semibold">${formatCurrency(item.price)}</span></div>
                             <button onclick="removeItemFromCart(${item.cartId})" class="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-red-500 p-2"><svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg></button>
                         </div>
                     `;
@@ -656,19 +740,125 @@
             document.getElementById('order-obs').value = '';
             renderCart();
             showToast(`Pedido #${newOrder.id} enviado!`);
+            switchView('status');
+        }
+
+        // --- MODAL DE PAGAMENTO E TROCO ---
+        function openPaymentModal(orderId) {
+            currentPayingOrderId = orderId;
+            const order = State.orders.find(o => o.id === orderId);
+            if(!order) return;
+
+            document.getElementById('pay-order-info').innerText = `#${order.id} - ${order.customer} (${order.type})`;
+            document.getElementById('pay-total-display').innerText = formatCurrency(order.total_price);
+            document.getElementById('pay-received').value = '';
+            document.getElementById('pay-change-display').innerText = formatCurrency(0);
+            document.getElementById('pay-extra-desc').value = '';
+            document.getElementById('pay-extra-val').value = '';
+            
+            setPaymentMethod('Dinheiro');
+            renderPayExtrasList(order);
+
+            document.getElementById('payment-modal').classList.remove('hidden');
+            document.getElementById('payment-modal').classList.add('flex');
+            document.body.style.overflow = 'hidden';
+        }
+
+        function closePaymentModal() {
+            document.getElementById('payment-modal').classList.add('hidden');
+            document.getElementById('payment-modal').classList.remove('flex');
+            document.body.style.overflow = 'auto';
+            currentPayingOrderId = null;
+        }
+
+        function setPaymentMethod(method) {
+            currentPaymentMethod = method;
+            ['Dinheiro', 'Cartao', 'Pix'].forEach(m => {
+                const btn = document.getElementById(`pm-${m.toLowerCase()}`);
+                if(btn) {
+                    btn.className = "pay-method-btn py-3 border-2 rounded-xl font-bold text-sm border-gray-200 text-gray-600";
+                }
+            });
+            const activeBtn = document.getElementById(`pm-${method.toLowerCase()}`);
+            if(activeBtn) {
+                activeBtn.className = "pay-method-btn py-3 border-2 rounded-xl font-bold text-sm border-red-500 bg-red-50 text-red-600";
+            }
+            const cashContainer = document.getElementById('cash-change-container');
+            if(method === 'Dinheiro') {
+                cashContainer.style.display = 'block';
+            } else {
+                cashContainer.style.display = 'none';
+            }
+        }
+
+        function calculateChange() {
+            const order = State.orders.find(o => o.id === currentPayingOrderId);
+            if(!order) return;
+            const received = parseFloat(document.getElementById('pay-received').value) || 0;
+            const change = received - order.total_price;
+            document.getElementById('pay-change-display').innerText = formatCurrency(change > 0 ? change : 0);
+        }
+
+        async function addExtraToExistingOrder() {
+            const order = State.orders.find(o => o.id === currentPayingOrderId);
+            if(!order) return;
+            const desc = document.getElementById('pay-extra-desc').value.trim();
+            const val = parseFloat(document.getElementById('pay-extra-val').value);
+            if(!desc || isNaN(val) || val <= 0) {
+                showToast('Informe a descrição e o valor do adicional!', 'error');
+                return;
+            }
+            if(!order.items) order.items = [];
+            order.items.push({ cartId: Date.now(), typeItem: 'extra', title: desc, price: val });
+            order.total_price += val;
+
+            document.getElementById('pay-extra-desc').value = '';
+            document.getElementById('pay-extra-val').value = '';
+            document.getElementById('pay-total-display').innerText = formatCurrency(order.total_price);
+            if(currentPaymentMethod === 'Dinheiro') calculateChange();
+
+            renderPayExtrasList(order);
+            await updateDoc(doc(ordersRef, order.id.toString()), { items: order.items, total_price: order.total_price });
+            showToast('Item extra adicionado na comanda!');
+        }
+
+        function renderPayExtrasList(order) {
+            const container = document.getElementById('pay-extras-list');
+            const extras = (order.items || []).filter(i => i.typeItem === 'extra');
+            if(extras.length === 0) {
+                container.innerHTML = `<span class="italic text-gray-400">Nenhum adicional lançado.</span>`;
+                return;
+            }
+            container.innerHTML = extras.map(e => `<div class="flex justify-between bg-white p-2 rounded border"><span>+ ${e.title}</span><span class="font-bold">${formatCurrency(e.price)}</span></div>`).join('');
+        }
+
+        async function confirmAndFinishOrder() {
+            if (!auth.currentUser || !currentPayingOrderId) return;
+            const order = State.orders.find(o => o.id === currentPayingOrderId);
+            if(!order) return;
+
+            const received = currentPaymentMethod === 'Dinheiro' ? (parseFloat(document.getElementById('pay-received').value) || order.total_price) : order.total_price;
+            const change = received - order.total_price;
+
+            order.status = 'ready';
+            order.completedAt = new Date().toISOString();
+            order.paymentMethod = currentPaymentMethod;
+            order.amountReceived = received;
+            order.changeAmount = change > 0 ? change : 0;
+
+            await deleteDoc(doc(ordersRef, order.id.toString()));
+            await setDoc(doc(historyRef, order.id.toString()), order);
+
+            closePaymentModal();
+            showToast(`Pedido #${order.id} finalizado e pago via ${currentPaymentMethod}!`);
         }
 
         async function changeOrderStatus(orderId, newStatus) {
             if (!auth.currentUser) return;
-            const order = State.orders.find(o => o.id === orderId);
-            if (!order) return;
             if (newStatus === 'ready') {
-                order.status = 'ready'; order.completedAt = new Date().toISOString();
-                await deleteDoc(doc(ordersRef, order.id.toString()));
-                await setDoc(doc(historyRef, order.id.toString()), order);
-                showToast(`Pedido #${order.id} concluído!`);
+                openPaymentModal(orderId);
             } else {
-                await updateDoc(doc(ordersRef, order.id.toString()), { status: newStatus });
+                await updateDoc(doc(ordersRef, orderId.toString()), { status: newStatus });
             }
         }
 
@@ -681,7 +871,7 @@
             if (confirm(`Remover do histórico?`)) { await deleteDoc(doc(historyRef, orderId.toString())); showToast('Removido.'); }
         }
 
-        // --- RENDER COZINHA (COM O TIPO DE PEDIDO RESTAURADO NO ZOOM) ---
+        // --- RENDER COZINHA ---
         function renderKitchenView() {
             const container = document.getElementById('kitchen-orders-container');
             if(!container) return;
@@ -696,7 +886,8 @@
                 const borderColor = isPreparing ? 'border-t-blue-500' : 'border-t-yellow-500';
                 const typeColor = order.type === 'Local' ? 'bg-blue-600' : order.type === 'Viagem' ? 'bg-purple-600' : order.type === 'Retirada' ? 'bg-orange-500' : 'bg-red-500';
 
-                let itemsHtml = (order.items || []).map((item, i) => {
+                // Cozinha exibe apenas pratos e pastéis (ignora extras de caixa como refrigerante avulso)
+                let itemsHtml = (order.items || []).filter(i => i.typeItem !== 'extra').map((item, i) => {
                     if(item.typeItem === 'plate' || !item.typeItem) {
                         return `
                             <div class="mb-3 bg-gray-50 p-3 border-2 border-gray-200 rounded-xl">
@@ -734,11 +925,11 @@
                         <div class="w-full ${typeColor} text-white text-center font-black uppercase py-1 text-xs rounded-lg mb-3">PARA ${order.type}</div>
                         <div class="text-xs font-bold text-gray-500 bg-gray-100 px-2 py-1 rounded mb-3 inline-block">⏱️ ${order.timeString}</div>
                         ${order.observations ? `<div class="bg-red-50 text-red-700 p-2 rounded text-xs font-bold mb-3">Geral: ${order.observations}</div>` : ''}
-                        <div class="space-y-2">${itemsHtml}</div>
+                        <div class="space-y-2">${itemsHtml || '<p class="text-xs text-gray-400 italic">Apenas itens de caixa nesta comanda.</p>'}</div>
                     </div>
                     <div class="mt-4 pt-3 border-t flex gap-2">
                         ${!isPreparing ? `<button onclick="changeOrderStatus(${order.id}, 'preparing')" class="flex-1 bg-blue-50 hover:bg-blue-100 text-blue-700 py-2 rounded-lg font-bold text-sm">Preparar</button>` : ''}
-                        <button onclick="changeOrderStatus(${order.id}, 'ready')" class="flex-1 bg-green-500 hover:bg-green-600 text-white py-2 rounded-lg font-bold text-sm shadow-sm">Pronto!</button>
+                        <button onclick="changeOrderStatus(${order.id}, 'ready')" class="flex-1 bg-green-500 hover:bg-green-600 text-white py-2 rounded-lg font-bold text-sm shadow-sm">Pronto / Caixa</button>
                     </div>
                 `;
                 container.appendChild(card);
@@ -754,8 +945,10 @@
             let itemsHtml = (order.items || []).map((item, i) => {
                 if(item.typeItem === 'plate' || !item.typeItem) {
                     return `<div class="mb-4 bg-gray-50 p-4 border-2 rounded-2xl"><div class="font-bold text-2xl uppercase mb-2">Prato ${i+1} (${item.size})</div><ul class="text-xl space-y-1"><li><b>Prot:</b> ${(item.proteins||[]).join(', ')}</li><li><b>Carbo:</b> ${(item.carbs||[]).join(', ')}</li><li><b>Acomp:</b> ${(item.sides||[]).join(', ')}</li></ul>${item.obs ? `<div class="mt-2 text-red-600 font-bold">Obs: ${item.obs}</div>` : ''}</div>`;
-                } else {
+                } else if(item.typeItem === 'pastel') {
                     return `<div class="mb-4 bg-amber-50 p-4 border-2 border-amber-200 rounded-2xl"><div class="font-bold text-2xl uppercase mb-1 text-amber-900">Pastel ${i+1}</div><div class="text-2xl font-black text-amber-950">Sabor: ${item.flavor}</div>${item.obs ? `<div class="mt-2 text-red-600 font-bold">Obs: ${item.obs}</div>` : ''}</div>`;
+                } else {
+                    return `<div class="mb-4 bg-blue-50 p-4 border-2 border-blue-200 rounded-2xl"><div class="font-bold text-xl uppercase text-blue-900">Extra: ${item.title}</div><div class="text-xl font-bold">${formatCurrency(item.price)}</div></div>`;
                 }
             }).join('');
             
@@ -763,6 +956,7 @@
                 <div class="flex justify-between items-start mb-4">
                     <div>
                         <h2 class="text-4xl font-black">#${order.id} - ${order.customer}</h2>
+                        <span class="text-sm font-bold text-gray-500">Total atual: ${formatCurrency(order.total_price)}</span>
                     </div>
                     <div class="${typeColor} text-white px-4 py-2 rounded-xl text-lg font-black uppercase">
                         PARA ${order.type}
@@ -781,7 +975,17 @@
             container.innerHTML = '';
             if (!State.orders || State.orders.length === 0) { container.innerHTML = `<div class="col-span-full text-gray-500 italic">Nenhum pedido ativo.</div>`; return; }
             [...State.orders].reverse().forEach(order => {
-                container.innerHTML += `<div class="bg-white rounded-xl shadow-sm border p-4 flex justify-between items-center"><div><div class="font-bold text-lg">#${order.id} - ${order.customer}</div><div class="text-sm text-gray-600">${(order.items||[]).length} item(s) • ${formatCurrency(order.total_price)}</div></div><div class="text-sm font-bold px-3 py-1.5 rounded-lg ${order.status === 'preparing' ? 'bg-blue-50 text-blue-600' : 'bg-yellow-50 text-yellow-600'}">${order.status === 'preparing' ? 'Preparando' : 'Pendente'}</div></div>`;
+                container.innerHTML += `
+                    <div class="bg-white rounded-xl shadow-sm border p-4 flex justify-between items-center">
+                        <div>
+                            <div class="font-bold text-lg">#${order.id} - ${order.customer}</div>
+                            <div class="text-sm text-gray-600">${(order.items||[]).length} item(s) • <b class="text-green-600">${formatCurrency(order.total_price)}</b></div>
+                        </div>
+                        <div class="flex items-center gap-2">
+                            <button onclick="openPaymentModal(${order.id})" class="bg-green-500 hover:bg-green-600 text-white font-bold px-3 py-2 rounded-xl text-sm shadow-sm">Finalizar / Caixa</button>
+                        </div>
+                    </div>
+                `;
             });
         }
 
@@ -889,7 +1093,7 @@
                     <div class="flex justify-between items-center py-2 border-t text-sm">
                         <div class="flex items-center gap-2">
                             <button onclick="deleteHistoryOrder(${o.id})" class="text-gray-400 hover:text-red-500"><svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg></button>
-                            <span>#${o.id} - ${o.customer} (${o.type})</span>
+                            <span>#${o.id} - ${o.customer} (${o.type}) • <b class="text-red-600">${o.paymentMethod || 'Dinheiro'}</b> ${o.changeAmount ? `(Troco: ${formatCurrency(o.changeAmount)})` : ''}</span>
                         </div>
                         <span class="font-bold">${formatCurrency(o.total_price)}</span>
                     </div>
